@@ -1,18 +1,26 @@
 import type { Metadata } from 'next';
-import { Geist, Geist_Mono, Inter } from 'next/font/google';
+import { Instrument_Serif, Oswald, Xanh_Mono } from 'next/font/google';
 import '@/styles/globals.css';
-import { cn } from "@/lib/utils";
+import { cn } from '@/lib/utils';
+import { Toaster } from '@/components/ui/sonner';
+import { ThemeProvider } from '@/provider/ThemeProvider';
+import { TooltipProvider } from '@/components/ui/tooltip';
+import AuthWrapper from '@/features/auth/components/AuthWrapper';
 
-const inter = Inter({subsets:['latin'],variable:'--font-sans'});
-
-const geistSans = Geist({
-  variable: '--font-geist-sans',
+const owswald = Oswald({
+  variable: '--font-sans',
   subsets: ['latin'],
 });
 
-const geistMono = Geist_Mono({
-  variable: '--font-geist-mono',
+const instrumentSerif = Instrument_Serif({
+  variable: '--font-serif',
   subsets: ['latin'],
+  weight: ['400'],
+});
+const xanhMono = Xanh_Mono({
+  variable: '--font-mono',
+  subsets: ['latin'],
+  weight: ['400'],
 });
 
 export const metadata: Metadata = {
@@ -28,9 +36,30 @@ export default function RootLayout({
   return (
     <html
       lang="en"
-      className={cn("h-full", "antialiased", geistSans.variable, geistMono.variable, "font-sans", inter.variable)}
+      suppressHydrationWarning
+      className={cn(
+        'h-full',
+        'antialiased',
+        owswald.variable,
+        instrumentSerif.variable,
+        xanhMono.variable,
+      )}
     >
-      <body className="min-h-full flex flex-col">{children}</body>
+      <body className="min-h-full flex flex-col">
+        <ThemeProvider
+          attribute="class"
+          defaultTheme="light"
+          enableSystem
+          disableTransitionOnChange
+        >
+          <AuthWrapper>
+            <TooltipProvider>
+              {children}
+              <Toaster />
+            </TooltipProvider>
+          </AuthWrapper>
+        </ThemeProvider>
+      </body>
     </html>
   );
 }

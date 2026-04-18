@@ -1,6 +1,5 @@
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { Button } from '@/components/ui/button';
 import {
   ShieldCheck,
   Calendar,
@@ -9,8 +8,6 @@ import {
   Power,
   AlertTriangle,
   Clock,
-  Trash,
-  Edit,
   Shield,
 } from 'lucide-react';
 import { formatDistanceToNow } from 'date-fns';

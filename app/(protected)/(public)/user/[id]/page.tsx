@@ -15,40 +15,32 @@ export default async function AdminUserLookup({
   const {
     data: { user },
   } = await supabase.auth.getUser();
+  if (user?.user_metadata?.role !== 0) redirect('/user');
 
-  // 1. Check if the user is actually an admin
-  const isAdmin = user?.user_metadata?.role === 0;
-
-  if (!isAdmin) {
-    redirect('/user');
-  }
-
-  // 2. Determine if the Admin is looking at their OWN record
   const isOwner = user?.id === id;
 
   // 3. Admin can fetch any profile by ID
-  const { data: targetProfile, error } = await supabaseAdmin
-    .from('profiles')
-    .select(
-      `
-    *,
-    security_questions!inner (
-      question_text
-    )
-  `,
-    )
-    .eq('id', id)
-    .single();
+  const [profileRes, questionsRes, rolesRes] = await Promise.all([
+    supabaseAdmin
+      .from('profiles')
+      .select('*, security_questions(question_text)')
+      .eq('id', id)
+      .single(),
+    supabaseAdmin.from('security_questions').select('id, question_text'),
+    supabaseAdmin.from('roles').select('id, role_name'),
+  ]);
 
-  console.log('Fetched profile for ID:', id, targetProfile);
-  if (error || !targetProfile) {
-    return notFound();
-  }
+  if (profileRes.error || !profileRes.data) return notFound();
 
   return (
     <div className="p-6">
       {/* 4. Pass the dynamic isOwner value */}
-      <ProfileView profile={targetProfile} isOwner={isOwner} />
+      <ProfileView
+        profile={profileRes.data}
+        isOwner={isOwner}
+        securityQuestions={questionsRes.data || []}
+        roles={(rolesRes.data as any) || []}
+      />
     </div>
   );
 }

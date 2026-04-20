@@ -30,9 +30,10 @@ export const CreateUserSchema = z
 export const UpdateUserSchema = z.object({
   username: UserSchema.username.optional(),
   email: UserSchema.email.optional(),
-  password: UserSchema.password.optional(),
+  password: UserSchema.password.optional().or(z.literal('')), // Allow empty string for "no change"
   security_question_id: UserSchema.security_question_id.optional(),
-  security_answer_hash: UserSchema.security_answer.optional(),
+  // CHANGE THIS: Match the form field name
+  security_answer: UserSchema.security_answer.optional().or(z.literal('')), // Allow empty string for "no change"
   role_id: UserSchema.role_id.optional(),
 });
 

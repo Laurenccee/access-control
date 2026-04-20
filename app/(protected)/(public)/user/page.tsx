@@ -21,7 +21,12 @@ export default async function UserProfilePage() {
   return (
     <div className="p-6">
       {/* URL remains /user - ID is hidden from user */}
-      <ProfileView profile={profile} isOwner={true} />
+      <ProfileView
+        profile={profile}
+        isOwner={true}
+        securityQuestions={[]}
+        roles={[]}
+      />
     </div>
   );
 }

@@ -18,33 +18,31 @@ import {
   TooltipTrigger,
 } from '@/components/ui/tooltip';
 import { Button } from '@/components/ui/button';
-import { Trash, AlertTriangle } from 'lucide-react';
-import { softDeleteUser } from '../actions/user';
+import { AlertTriangle, Key, Loader2 } from 'lucide-react';
+import { reactivateUser, softDeleteUser } from '../actions/user';
 import { useRouter } from 'next/navigation';
 import { toast } from 'sonner';
 
-interface DeleteUserDialogProps {
+interface ReactivateUserDialogProps {
   userId: string;
   username: string;
 }
 
-export default function DeleteUserDialog({
+export default function ReactivateUserDialog({
   userId,
   username,
-}: DeleteUserDialogProps) {
+}: ReactivateUserDialogProps) {
   const [isPending, startTransition] = useTransition();
   const router = useRouter();
 
-  const handleDelete = () => {
+  const handleReactivate = () => {
     startTransition(async () => {
-      const result = await softDeleteUser(userId);
-
+      const result = await reactivateUser(userId);
       if (result.success) {
-        toast.success(`Account ${username} deactivated.`);
-        // Navigate away after success
+        toast.success(`Account ${username} reactivated.`);
         router.replace('/admin-console');
       } else {
-        toast.error(result.message || 'Deactivation failed.');
+        toast.error(result.message || 'Reactivation failed.');
       }
     });
   };
@@ -52,16 +50,19 @@ export default function DeleteUserDialog({
   return (
     <AlertDialog>
       <Tooltip>
-        {/* Ensure ONLY the dialog is inside */}
         <TooltipTrigger asChild>
           <AlertDialogTrigger asChild>
             <Button
               variant="outline"
               size="icon"
-              className="text-muted-foreground hover:text-rose-500 transition-colors"
+              className="text-muted-foreground hover:text-emerald-500 transition-colors"
               disabled={isPending}
             >
-              <Trash size={16} />
+              {isPending ? (
+                <Loader2 className="animate-spin" size={16} />
+              ) : (
+                <Key size={16} />
+              )}
             </Button>
           </AlertDialogTrigger>
         </TooltipTrigger>
@@ -74,12 +75,12 @@ export default function DeleteUserDialog({
         <AlertDialogHeader>
           <AlertDialogTitle className="flex items-center gap-2 uppercase tracking-tighter text-rose-500">
             <AlertTriangle size={18} />
-            Confirm_Deactivation
+            Confirm_Reactivate
           </AlertDialogTitle>
           <AlertDialogDescription className="text-xs uppercase leading-relaxed">
-            You are about to deactivate account:{' '}
+            You are about to reactivate account:{' '}
             <span className="text-primary font-bold">{username}</span>. This
-            will revoke all access tokens and mark the record as inactive in the
+            will restore access tokens and mark the record as active in the
             database.
           </AlertDialogDescription>
         </AlertDialogHeader>
@@ -92,10 +93,10 @@ export default function DeleteUserDialog({
             Cancel
           </AlertDialogCancel>
           <AlertDialogAction
-            onClick={handleDelete}
+            onClick={handleReactivate}
             className=" bg-destructive hover:bg-rose-700 uppercase text-xs tracking-widest"
           >
-            {isPending ? 'Processing...' : 'Confirm Delete'}
+            {isPending ? 'Processing...' : 'Confirm Reactivate'}
           </AlertDialogAction>
         </AlertDialogFooter>
       </AlertDialogContent>

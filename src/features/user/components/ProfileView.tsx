@@ -14,15 +14,29 @@ import { formatDistanceToNow } from 'date-fns';
 import { Label } from '@/components/ui/label';
 import UpdateProfileSheetForm from './UpdateProfileSheetForm';
 import DeleteUserDialog from './DeleteUserDialog';
+import ReactivateUserDialog from './ReactivateUserDialog';
 
 interface ProfileViewProps {
   profile: any;
   isOwner: boolean;
+
+  securityQuestions: any[];
+  roles: Role[];
+}
+export interface Role {
+  id: number;
+  role_name: string;
 }
 
-export default function ProfileView({ profile, isOwner }: ProfileViewProps) {
+export default function ProfileView({
+  profile,
+  isOwner,
+  securityQuestions,
+  roles,
+}: ProfileViewProps) {
   const isAdmin = profile.role_id === 0;
-  const isDeleted = profile.is_active === false;
+  const isDeleted = profile.deleted_at !== null;
+  const isActive = profile.is_active === true;
   const questionText = (profile.security_questions as any)?.question_text;
 
   return (
@@ -32,8 +46,16 @@ export default function ProfileView({ profile, isOwner }: ProfileViewProps) {
         <div className="bg-destructive/10 border border-destructive/20 text-destructive p-3 flex items-center gap-3 rounded-md">
           <AlertTriangle size={18} />
           <div className="text-[10px] uppercase tracking-widest font-bold">
-            Notice: Account Deactivated on{' '}
+            Notice: Account Deleted on{' '}
             {new Date(profile.deleted_at).toLocaleDateString()}
+          </div>
+        </div>
+      )}
+      {!isActive && (
+        <div className="bg-destructive/10 border border-destructive/20 text-destructive p-3 flex items-center gap-3 rounded-md">
+          <AlertTriangle size={18} />
+          <div className="text-[10px] uppercase tracking-widest font-bold">
+            Notice: Account Inactive
           </div>
         </div>
       )}
@@ -67,12 +89,27 @@ export default function ProfileView({ profile, isOwner }: ProfileViewProps) {
                 </div>
               </div>
             </div>
-            <div className="flex items-center gap-1">
-              <UpdateProfileSheetForm profile={profile} />
-              <DeleteUserDialog
-                userId={profile.id}
-                username={profile.username}
-              />
+            <div className="flex items-center gap-2">
+              {!isDeleted && isActive && (
+                <>
+                  <UpdateProfileSheetForm
+                    profile={profile}
+                    securityQuestions={securityQuestions}
+                    roles={roles}
+                  />
+                  <DeleteUserDialog
+                    userId={profile.id}
+                    username={profile.username}
+                  />
+                </>
+              )}
+
+              {(isDeleted || !isActive) && (
+                <ReactivateUserDialog
+                  userId={profile.id}
+                  username={profile.username}
+                />
+              )}
             </div>
           </div>
         </CardHeader>

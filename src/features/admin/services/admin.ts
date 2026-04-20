@@ -18,9 +18,8 @@ export const SecurityService = {
 
     const { data, error } = await supabase
       .from('profiles')
-      .select(
-        'id, username, role_id, last_seen, created_at, lockout_until, email, deleted_at, is_active',
-      );
+      .select('*')
+      .is('deleted_at', null);
 
     if (error) {
       console.error(
@@ -38,11 +37,11 @@ export const SecurityService = {
     const { data, error } = await supabase
       .from('activity_logs')
       .select('*')
-      .order('created_at', { ascending: false }) // get latest first
+      .order('created_at', { ascending: false })
       .limit(10);
 
     if (error) throw new Error('Could not retrieve audit trail.');
-    return data ? data.reverse() : []; // reverse so latest is at the bottom
+    return data ? data.reverse() : [];
   },
 
   async revokeAccess(userId: string, adminName: string) {

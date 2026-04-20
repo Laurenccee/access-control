@@ -28,14 +28,8 @@ export default function LiveTerminalLogs({ initialLogs }: AdminConsoleProps) {
     return colonIndex !== -1 ? event.slice(colonIndex + 1).trim() : null;
   };
 
-  console.log('Initial Logs:', initialLogs); // Debugging line to check the logs data
-
   return (
     <div className="flex gap-4">
-      <div className="flex flex-col flex-1 gap-4">
-        <Card className="border-border/80  flex-1"></Card>
-        <Card className="border-border/80  flex-1"></Card>
-      </div>
       <Card className="border-border/80 flex-1/2 overflow-hidden">
         <CardHeader className="bg-slate-50 border-b">
           <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-2 sm:gap-0">

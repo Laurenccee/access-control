@@ -44,6 +44,13 @@ export async function signInAction(values: SignInData) {
     return { success: false, message: 'Identity error.' };
   }
 
+  console.log(
+    'Attempting sign-in for username:',
+    username,
+    'with email:',
+    authUser.user.email,
+  );
+
   // 4. Authenticate
   const { data: authData, error: authError } =
     await supabase.auth.signInWithPassword({
@@ -52,36 +59,39 @@ export async function signInAction(values: SignInData) {
     });
 
   if (authError) {
+    if (authError.code === 'email_not_confirmed') {
+      // Log the specific event
+      await supabaseAdmin.from('activity_logs').insert({
+        user_id: profile.id, // We have the ID from step 1
+        username,
+        event_type: 'SIGN_IN_UNVERIFIED',
+        status: 'FAILURE',
+      });
+
+      return {
+        success: false,
+        message: 'Please verify your email address before logging in.',
+      };
+    }
+
     const newAttempts = (profile.failed_attempts || 0) + 1;
     let lockoutUntil = null;
     let responseMessage = `Invalid credentials. Attempt ${newAttempts}/3.`;
 
-    // Calculate lockout if threshold reached
     if (newAttempts >= 3) {
       lockoutUntil = new Date(Date.now() + 30 * 1000).toISOString();
       responseMessage = 'Too many failed attempts. System locked for 30s.';
     }
 
-    // 1. Update the profile (Increment attempts)
-    const { error: updateError } = await supabaseAdmin
-      .from('profiles')
-      .update({
-        failed_attempts: newAttempts,
-        lockout_until: lockoutUntil,
-      })
-      .eq('id', profile.id);
-
-    // DEBUG: If this logs, your Admin Client isn't bypassing RLS correctly
-    if (updateError) {
-      console.error('DATABASE UPDATE FAILED:', updateError.message);
-    }
-
-    // 2. Log the activity
-    await supabaseAdmin.from('activity_logs').insert({
-      username,
-      event_type: 'SIGN_IN',
-      status: 'FAILURE',
-    });
+    await Promise.all([
+      supabaseAdmin
+        .from('profiles')
+        .update({ failed_attempts: newAttempts, lockout_until: lockoutUntil })
+        .eq('id', profile.id),
+      supabaseAdmin
+        .from('activity_logs')
+        .insert({ username, event_type: 'SIGN_IN', status: 'FAILURE' }),
+    ]);
 
     return { success: false, message: responseMessage };
   }
@@ -98,6 +108,7 @@ export async function signInAction(values: SignInData) {
       event_type: 'SIGN_IN',
       status: 'SUCCESS',
     }),
+    supabase.auth.updateUser({ data: { role: profile.role_id } }),
   ]);
 
   const cookieStore = await cookies();
@@ -108,9 +119,6 @@ export async function signInAction(values: SignInData) {
     secure: true,
     sameSite: 'lax',
   });
-
-  // Keep this for future sessions/refresh
-  await supabase.auth.updateUser({ data: { role: profile.role_id } });
 
   revalidatePath('/', 'layout');
   return { success: true, redirectTo: '/verification' };

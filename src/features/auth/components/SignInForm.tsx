@@ -69,7 +69,7 @@ export default function SignInForm() {
           return;
         }
         toast.success(`Identity Verified: ${data.username}`);
-        router.replace(result?.redirectTo || '/verification');
+        router.replace('/');
       } catch (err) {
         toast.error('System error: Could not reach authentication gateway');
       }

@@ -36,10 +36,7 @@ interface CreateUserFormProps {
   roles: Role[];
 }
 
-export default function CreateUserForm({
-  securityQuestions,
-  roles,
-}: CreateUserFormProps) {
+export default function CreateUserForm({ roles }: CreateUserFormProps) {
   const [isPending, startTransistion] = useTransition();
 
   const roleOptions = roles.map((r) => ({
@@ -52,33 +49,9 @@ export default function CreateUserForm({
     defaultValues: {
       email: '',
       username: '',
-      password: '',
-      confirmPassword: '',
       role_id: 1,
-      security_question_id: '',
-      security_answer: '',
     },
   });
-
-  const [passwordValue, confirmPasswordValue] = useWatch({
-    control,
-    name: ['password', 'confirmPassword'],
-  }) as [string | undefined, string | undefined];
-
-  const checkRules = (pw: string = '', confirmPw: string = '') => ({
-    minLen: pw.length >= 8,
-    uppercase: /[A-Z]/.test(pw),
-    lowercase: /[a-z]/.test(pw),
-    number: /[0-9]/.test(pw),
-    mustMatch: pw === confirmPw && pw.length > 0,
-  });
-
-  const rules = checkRules(passwordValue || '', confirmPasswordValue || '');
-
-  const securityOptions = securityQuestions.map((q) => ({
-    value: q.id,
-    label: q.question_text,
-  }));
 
   const handleCreateUser: SubmitHandler<CreateUser> = (data) => {
     startTransistion(async () => {
@@ -111,6 +84,7 @@ export default function CreateUserForm({
         action=""
         onSubmit={handleSubmit(handleCreateUser)}
         id="user-create-form"
+        className="flex-1"
       >
         <CardContent className="flex flex-col gap-4">
           <InputField
@@ -142,53 +116,13 @@ export default function CreateUserForm({
               transform={(val) => Number(val) as 0 | 1}
             />
           </div>
-          <div className="flex gap-2">
-            <InputField
-              name="password"
-              label="Password"
-              control={control}
-              isPending={isPending}
-              type="password"
-              placeholder="Enter Password"
-              leadingIcon={<RectangleEllipsis size={18} />}
-            />
-            <InputField
-              name="confirmPassword"
-              label="Confirm Password"
-              control={control}
-              isPending={isPending}
-              type="password"
-              placeholder="Confirm Password"
-              leadingIcon={<RectangleEllipsis size={18} />}
-            />
-          </div>
-
-          <PasswordRulesCard rules={rules} />
-          <div className="flex gap-2">
-            <SelectionField
-              name="security_question_id"
-              label="Security Question"
-              control={control}
-              isPending={isPending}
-              options={securityOptions}
-            />
-            <InputField
-              name="security_answer"
-              label="Security Answer"
-              control={control}
-              isPending={isPending}
-              type="text"
-              placeholder="Enter Security Answer"
-              leadingIcon={<Shield size={18} />}
-            />
-          </div>
         </CardContent>
       </form>
       <CardFooter>
         <Button
           size="lg"
           type="submit"
-          className="flex-1"
+          className="w-full"
           form="user-create-form"
           disabled={isPending}
         >

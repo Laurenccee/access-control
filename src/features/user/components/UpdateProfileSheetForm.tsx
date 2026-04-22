@@ -1,17 +1,9 @@
 'use client';
 
-import { useEffect, useTransition } from 'react';
-import { useForm, useWatch } from 'react-hook-form';
+import { useTransition } from 'react';
+import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
-import {
-  Edit,
-  Loader2,
-  Mail,
-  RectangleEllipsis,
-  Shield,
-  User,
-  Save,
-} from 'lucide-react';
+import { Edit, Loader2, Mail, User, Save, Shield } from 'lucide-react';
 import { toast } from 'sonner';
 import {
   Tooltip,
@@ -30,9 +22,15 @@ import {
   SheetDescription,
   SheetFooter,
 } from '@/components/ui/sheet';
-import { UpdateUser, UpdateUserSchema } from '@/features/admin/schemas/user';
-import PasswordRulesCard from '@/features/auth/components/PasswordRulesCard';
-import { UpdateUserAction } from '@/features/admin/actions/user';
+import {
+  AdminUpdateUserSchema,
+  UpdateProfile,
+} from '@/features/admin/schemas/user';
+import {
+  triggerPasswordResetAction,
+  updateUserAction,
+} from '@/features/admin/actions/user';
+import { useAuth } from '@/hooks/useAuth';
 
 interface UpdateProfileSheetFormProps {
   profile: any;
@@ -51,7 +49,8 @@ export default function UpdateProfileSheetForm({
   roles,
 }: UpdateProfileSheetFormProps) {
   const [isPending, startTransition] = useTransition();
-
+  const { isAdmin, user } = useAuth();
+  const isOwner = user?.id === profile?.id;
   const roleOptions = roles.map((r) => ({
     value: r.id.toString(),
     label: r.role_name,
@@ -62,39 +61,34 @@ export default function UpdateProfileSheetForm({
     label: q.question_text,
   }));
 
-  const { control, handleSubmit, reset } = useForm<UpdateUser>({
-    resolver: zodResolver(UpdateUserSchema),
+  // Change this line in your component:
+  const { control, handleSubmit, reset } = useForm<any>({
+    // Use 'any' or the specific Admin type
+    resolver: zodResolver(AdminUpdateUserSchema),
     defaultValues: {
       email: profile?.email || '',
       username: profile?.username || '',
-      password: '',
-      role_id: profile?.role_id ?? 1,
+      role_id: profile?.role_id, // Ensure this is included
       security_question_id: String(profile?.security_question_id || ''),
-      security_answer: '',
+      security_answer: '', // Keep this blank for updates
     },
   });
-  console.log('UserRRole', profile.role_id);
 
-  const passwordValue = useWatch({ control, name: 'password' }) || '';
-
-  const rules = {
-    minLen: passwordValue.length >= 8,
-    uppercase: /[A-Z]/.test(passwordValue),
-    lowercase: /[a-z]/.test(passwordValue),
-    number: /[0-9]/.test(passwordValue),
-  };
-
-  const handleUpdateUser = async (data: UpdateUser) => {
+  const handleUpdateUser = async (data: UpdateProfile) => {
     startTransition(async () => {
       try {
         // Call the server action with the target user's ID and the form data
-        const result = await UpdateUserAction(profile.id, data);
+        console.log('Update Result:', data);
+        const result = await updateUserAction(profile.id, data);
 
         if (result.success) {
           toast.success(
             result.message || 'Personnel profile updated successfully!',
           );
-          reset();
+          reset({
+            ...data,
+            security_answer: '',
+          });
         } else {
           toast.error(result.message);
         }
@@ -105,6 +99,27 @@ export default function UpdateProfileSheetForm({
     });
   };
 
+  const handleResetPassword = () => {
+    startTransition(async () => {
+      // 1. We use the email from the form data or the profile prop
+      const email = profile.email;
+
+      if (!email) {
+        toast.error('User does not have a valid email address.');
+        return;
+      }
+
+      const result = await triggerPasswordResetAction(email);
+      if (result.success) {
+        toast.success(`Security reset initiated for ${profile.username}.`);
+      } else {
+        toast.error(result.message);
+      }
+    });
+  };
+
+  console.log('profile.security_question_id:', profile?.security_question_id);
+  console.log('securityOptions:', securityOptions);
   return (
     <Sheet>
       <Tooltip>
@@ -122,7 +137,7 @@ export default function UpdateProfileSheetForm({
           </SheetTrigger>
         </TooltipTrigger>
         <TooltipContent>
-          <p>Reactivate User</p>
+          <p>Update User</p>
         </TooltipContent>
       </Tooltip>
 
@@ -165,56 +180,60 @@ export default function UpdateProfileSheetForm({
               leadingIcon={<User size={18} />}
               description="NOTE: Case-sensitive!"
             />
-            <SelectionField
-              name="role_id"
-              label="Role"
-              control={control}
-              isPending={isPending}
-              options={roleOptions}
-              transform={(val) => Number(val) as 0 | 1}
-            />
+            {isAdmin && (
+              <SelectionField
+                name="role_id"
+                label="Role"
+                control={control}
+                isPending={isPending}
+                options={roleOptions}
+                transform={(val) => Number(val) as 0 | 1}
+              />
+            )}
           </div>
-
-          <InputField
-            name="password"
-            label="New Password"
-            control={control}
-            isPending={isPending}
-            type="password"
-            placeholder="Leave blank to keep current password"
-            leadingIcon={<RectangleEllipsis size={18} />}
-          />
-
-          <PasswordRulesCard rules={rules} />
-
-          <SelectionField
-            name="security_question_id"
-            label="Security Question"
-            control={control}
-            isPending={isPending}
-            options={securityOptions}
-          />
-          <InputField
-            name="security_answer"
-            label="Security Answer"
-            control={control}
-            isPending={isPending}
-            type="text"
-            placeholder={
-              profile?.security_answer_hash
-                ? '(Encrypted) Leave blank to keep current password'
-                : 'Enter New Answer'
-            }
-            leadingIcon={<Shield size={18} />}
-            description="Leave blank to keep the current security answer."
-          />
+          {isOwner && (
+            <>
+              <SelectionField
+                name="security_question_id"
+                label="Security Question"
+                control={control}
+                isPending={isPending}
+                options={securityOptions}
+              />
+              <InputField
+                name="security_answer"
+                label="Security Answer"
+                control={control}
+                isPending={isPending}
+                type="text"
+                placeholder={
+                  profile?.security_answer_hash
+                    ? '(Encrypted) Leave blank to keep current password'
+                    : 'Enter New Answer'
+                }
+                leadingIcon={<Shield size={18} />}
+                description="LEAVE BLANK TO KEEP CURRENT ANSWER."
+              />
+            </>
+          )}
         </form>
 
         <SheetFooter className="mt-auto">
           <Button
+            type="button"
+            size="lg"
+            onClick={handleResetPassword}
+            disabled={isPending}
+            variant="outline"
+          >
+            Send Reset Password
+          </Button>
+        </SheetFooter>
+        <SheetFooter className="mt-0 border-t-2 border-border">
+          <Button
             type="submit"
             disabled={isPending}
-            className="w-full flex gap-2"
+            className="w-full flex  gap-2"
             form="update-user-form"
             size="lg"
           >

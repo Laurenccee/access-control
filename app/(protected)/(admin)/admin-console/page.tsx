@@ -21,7 +21,7 @@ export default async function AdminPage() {
   const roles = await SelectionsOptions.getAllRoles();
 
   if (profile.role_id !== 0) {
-    redirect('/dashboard');
+    redirect('/user'); // Redirect non-admins to their dashboard
   }
 
   // Fetch data directly via our service

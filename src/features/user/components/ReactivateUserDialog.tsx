@@ -40,7 +40,7 @@ export default function ReactivateUserDialog({
       const result = await reactivateUser(userId);
       if (result.success) {
         toast.success(`Account ${username} reactivated.`);
-        router.replace('/admin-console');
+        router.replace('/');
       } else {
         toast.error(result.message || 'Reactivation failed.');
       }

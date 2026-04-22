@@ -6,6 +6,7 @@ import { promisify } from 'util'; // Required to use await with scrypt
 import { revalidatePath } from 'next/cache';
 import { SecurityQuestionData, SecurityQuestionSchema } from '../schemas/auth';
 import { cookies } from 'next/headers';
+import { ROUTES } from '@/lib/constant/routes';
 
 const scrypt = promisify(crypto.scrypt);
 
@@ -75,7 +76,8 @@ export async function verifySecurityAction(values: SecurityQuestionData) {
     sameSite: 'lax',
   });
 
-  const redirectTo = profile.role_id === 0 ? '/admin-console' : '/dashboard';
+  const redirectTo =
+    profile.role_id === 0 ? ROUTES.ADMIN_CONSOLE : ROUTES.USER_DASHBOARD;
 
   await supabaseAdmin.from('activity_logs').insert({
     user_id: user.id,

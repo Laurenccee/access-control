@@ -1,3 +1,5 @@
+import NavBar from '@/components/layouts/NavBar';
+import { ThemeToggle } from '@/components/shared/ThemeToggle';
 import SecurityQuestionForm from '@/features/auth/components/SecurityQuestionForm';
 import SignOutButton from '@/features/auth/components/SignOutButton';
 import { createAdminClient, createClient } from '@/lib/supabase/server';
@@ -11,6 +13,7 @@ export default async function VerificationPage() {
   const {
     data: { user },
   } = await supabase.auth.getUser();
+
   if (!user) redirect('/sign-in');
 
   // 2. Fetch the question via Admin Client
@@ -37,9 +40,7 @@ export default async function VerificationPage() {
     // min-h-screen ensures the background covers the whole page
     <div className="flex flex-col flex-1 w-full">
       {/* Navigation Bar: Remove flex-1 so it doesn't grow */}
-      <nav className="w-full bg-white border-b px-6 py-3 flex items-center justify-end">
-        <SignOutButton />
-      </nav>
+      <NavBar />
 
       {/* Content Area: flex-1 takes up the remaining height */}
       <section className="flex-1 flex items-center justify-center p-4">

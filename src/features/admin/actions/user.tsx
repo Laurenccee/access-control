@@ -5,16 +5,17 @@ import { revalidatePath } from 'next/cache';
 import {
   CreateUser,
   CreateUserSchema,
-  UpdateUser,
-  UpdateUserSchema,
+  UpdateProfile,
+  UpdateProfileSchema,
 } from '../schemas/user';
 import { hashSecurityAnswer, logActivity } from '@/lib/helper/auth';
+import { set } from 'zod';
 
 export async function addUserAction(values: CreateUser) {
   const supabaseAdmin = await createAdminClient();
-
-  // 1. Authorization Check (We need admin details for the log)
   const supabase = await createClient();
+
+  // 1. Authorization (Admin check)
   const {
     data: { user: adminUser },
   } = await supabase.auth.getUser();
@@ -29,208 +30,154 @@ export async function addUserAction(values: CreateUser) {
   if (adminProfile?.role_id !== 0)
     return { success: false, message: 'Access Denied.' };
 
-  // 2. Validation
+  // 2. Validation (CreateUserSchema should now exclude password/security fields)
   const validatedFields = CreateUserSchema.safeParse(values);
   if (!validatedFields.success)
     return { success: false, message: 'Invalid form data.' };
 
   const data = validatedFields.data;
 
-  // 3. Create Auth User
+  // 3. Create Auth User with a random complex password nobody knows
   const { data: authData, error: authError } =
     await supabaseAdmin.auth.admin.createUser({
       email: data.email,
-      password: data.password,
-      email_confirm: false,
-      user_metadata: { role_id: data.role_id, created_by: adminUser.id },
+      password: 'P@ssw0rd!',
+      email_confirm: false, // Auto-confirm so they can use the reset flow
+      user_metadata: { role_id: data.role_id },
     });
 
-  if (authError) {
-    return { success: false, message: authError.message };
-  }
+  if (authError) return { success: false, message: authError.message };
 
   const userId = authData.user.id;
 
   try {
-    const hashedAnswer = await hashSecurityAnswer(data.security_answer);
-
+    // 4. Insert Profile (NO security answer here)
     const { error: profileError } = await supabaseAdmin
       .from('profiles')
       .insert({
         id: userId,
-        username: data.username.toLowerCase(), // Normalize username to lowercase
+        username: data.username,
         email: data.email,
-        security_question_id: data.security_question_id,
-        security_answer_hash: hashedAnswer,
         role_id: data.role_id,
-        is_active: true,
+        setup_complete: false,
       });
 
     if (profileError) throw profileError;
 
-    // --- SUCCESS LOG ---
+    // 5. Trigger Password Reset Email immediately
+    // This allows the user to set their own password safely
+
     await logActivity(supabaseAdmin, {
       userId: adminUser.id,
       username: adminProfile.username || 'Admin',
-      event: `USER_CREATE: ${data.username}`,
+      event: `USER_CREATE: ${data.username} (Reset Email Sent)`,
       status: 'SUCCESS',
     });
 
     revalidatePath('/admin-console');
-    return { success: true };
+    return { success: true, message: 'User created. Reset email sent.' };
   } catch (error: any) {
     await supabaseAdmin.auth.admin.deleteUser(userId);
-
-    // --- FAILURE LOG ---
-    const errorMsg =
-      error?.code === '23505' ? 'Duplicate Username/Email' : 'Database Error';
-    await logActivity(supabaseAdmin, {
-      userId: adminUser.id,
-      username: adminProfile.username || 'Admin',
-      event: `USER_CREATE: ${data.username} (${errorMsg})`,
-      status: 'FAILURE',
-    });
-
     return {
       success: false,
-      message:
-        error?.code === '23505'
-          ? 'Conflict: Username or email in use.'
-          : 'Creation failed.',
+      message: error.message || 'User creation failed.',
     };
   }
 }
 
-/**
- * UpdateUserAction
- * Synchronizes Supabase Auth and the Profiles table.
- * * Logic:
- * - Verifies Admin permissions.
- * - Only updates password if a non-empty string is provided.
- * - Only updates security_answer_hash if a new answer is provided.
- * - Logs all attempts to the activity log.
- */
-export async function UpdateUserAction(userId: string, values: UpdateUser) {
+export async function updateUserAction(targetUserId: string, values: any) {
+  const supabase = await createClient();
   const supabaseAdmin = await createAdminClient();
 
-  // 1. Authorization Check
-  const supabase = await createClient();
+  // 1. Identify the Requester (Who is clicking the button?)
   const {
-    data: { user: adminUser },
+    data: { user: requester },
   } = await supabase.auth.getUser();
+  if (!requester) return { success: false, message: 'Not authenticated.' };
 
-  if (!adminUser) return { success: false, message: 'Unauthorized session.' };
-
-  const { data: adminProfile } = await supabase
+  // 2. Fetch Requester's Profile to check Role
+  const { data: requesterProfile } = await supabase
     .from('profiles')
     .select('role_id, username')
-    .eq('id', adminUser.id)
+    .eq('id', requester.id)
     .single();
 
-  if (adminProfile?.role_id !== 0) {
-    return {
-      success: false,
-      message: 'Access Denied: Admin privileges required.',
-    };
+  const isAdmin = requesterProfile?.role_id === 0;
+  const isSelf = requester.id === targetUserId;
+
+  // 3. Security Gate: Only Admin or the User themselves can proceed
+  if (!isAdmin && !isSelf) {
+    return { success: false, message: 'Unauthorized access.' };
   }
 
-  // 2. Data Validation
-  const validatedFields = UpdateUserSchema.safeParse(values);
-  if (!validatedFields.success) {
-    return { success: false, message: 'Invalid form data provided.' };
-  }
+  // 4. Validation
+  const validatedFields = UpdateProfileSchema.safeParse(values);
+  if (!validatedFields.success)
+    return { success: false, message: 'Invalid data.' };
 
-  const data = validatedFields.data;
-  const {
-    username,
-    email,
-    role_id,
-    security_question_id,
-    password,
-    security_answer,
-  } = validatedFields.data;
+  const { username, email } = validatedFields.data;
 
   try {
-    // 3. Conditional Auth Update (Email and Password)
-    const authUpdateData: any = { email: email };
+    // 5. Build Update Object Dynamically (The RBAC Logic)
+    let hashedAnswer = undefined;
+    if (isSelf && values.security_answer) {
+      // You must have a hashSecurityAnswer function available
+      hashedAnswer = await hashSecurityAnswer(values.security_answer);
+    }
+    const profileUpdates: any = { username, email };
 
-    // STRICT CHECK: Only include password if it is not an empty string or just whitespace
-    if (data.password && data.password.trim() !== '') {
-      if (data.password.length < 8) {
-        return {
-          success: false,
-          message: 'New password must be at least 8 characters.',
-        };
-      }
-      authUpdateData.password = data.password;
+    // Only allow role updates if the requester is an ADMIN
+    if (isAdmin && values.role_id !== undefined) {
+      profileUpdates.role_id = values.role_id;
     }
 
-    // Update Supabase Auth identities
-    const { error: authError } = await supabaseAdmin.auth.admin.updateUserById(
-      userId,
-      authUpdateData,
-    );
-
-    if (authError) throw authError;
-
-    // 4. Prepare Profile Table Updates
-    const profileUpdates: any = {
-      username: username,
-      email: email,
-      role_id: role_id,
-      security_question_id: security_question_id,
-    };
-
-    // STRICT CHECK: Only re-hash if a new security answer is provided
-    if (data.security_answer && data.security_answer.trim() !== '') {
-      profileUpdates.security_answer_hash = await hashSecurityAnswer(
-        data.security_answer,
-      );
+    // Only allow security question/answer updates if the user is updating their own profile
+    if (isSelf && values.security_question_id !== undefined) {
+      profileUpdates.security_question_id = values.security_question_id;
+    }
+    if (isSelf && values.security_answer !== undefined) {
+      profileUpdates.security_answer_hash = hashedAnswer;
     }
 
-    // 5. Execute Database Update
-    const { error: profileError } = await supabaseAdmin
+    // 6. Execute Updates
+    // Update Auth Email via Admin Client (allows changing other users' emails)
+    await supabaseAdmin.auth.admin.updateUserById(targetUserId, { email });
+
+    // Update Profile Table
+    const { error } = await supabaseAdmin
       .from('profiles')
       .update(profileUpdates)
-      .eq('id', userId);
+      .eq('id', targetUserId);
 
-    if (profileError) throw profileError;
+    if (error) throw error;
 
-    // 6. Record Success in Activity Logs
+    // 7. Log Activity (Task 7)
     await logActivity(supabaseAdmin, {
-      userId: adminUser.id,
-      username: adminProfile.username || 'Admin',
-      event: `USER_UPDATE: ${data.username}`,
+      userId: requester.id,
+      username: requesterProfile?.username || 'System',
+      event:
+        isAdmin && !isSelf ? `ADMIN_UPDATE_USER: ${targetUserId}` : `UPDATE`,
       status: 'SUCCESS',
     });
 
-    // 7. Refresh Cache/UI
     revalidatePath('/admin-console');
-    revalidatePath(`/profile/${userId}`);
+    revalidatePath('/user');
 
-    return {
-      success: true,
-      message: 'Personnel profile updated successfully!',
-    };
+    return { success: true, message: 'Update successful.' };
   } catch (error: any) {
-    // 8. Record Failure in Activity Logs
-    const errorMsg = error?.message || 'Unknown Database Error';
-
-    await logActivity(supabaseAdmin, {
-      userId: adminUser.id,
-      username: adminProfile.username || 'Admin',
-      event: `USER_UPDATE: ${data.username} (${errorMsg})`,
-      status: 'FAILURE',
-    });
-
-    console.error('UpdateUserAction Failure:', error);
-
-    return {
-      success: false,
-      message:
-        error?.code === '23505'
-          ? 'Conflict: Username or email already in use.'
-          : 'Update failed. Contact system administrator.',
-    };
+    return { success: false, message: error.message || 'Update failed.' };
   }
+}
+
+export async function triggerPasswordResetAction(email: string) {
+  const supabaseAdmin = await createAdminClient();
+
+  console.log('RedirectTo:', `${process.env.SITE_URL}/reset`);
+  const { error } = await supabaseAdmin.auth.resetPasswordForEmail(email, {
+    redirectTo: `${process.env.SITE_URL}/reset`,
+  });
+
+  if (error) return { success: false, message: error.message };
+
+  return { success: true, message: 'Recovery email sent to user.' };
 }

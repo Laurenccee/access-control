@@ -80,7 +80,7 @@ export default function SecurityQuestionForm({
 
   return (
     <Card className="w-full max-w-[95%] sm:max-w-md mx-auto border-border/40 transition-all">
-      <CardHeader className=" pt-4">
+      <CardHeader className=" pb-4">
         <CardTitle className="uppercase text-2xl sm:text-3xl text-center tracking-[0.15em] leading-none">
           Security Challenge
         </CardTitle>

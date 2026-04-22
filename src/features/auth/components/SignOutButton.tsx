@@ -9,7 +9,6 @@ import { Loader2, LogOut } from 'lucide-react';
 
 export default function SignOutButton() {
   const router = useRouter();
-  const pathname = usePathname();
   const [isPending, startTransition] = useTransition();
 
   const handleSignOut = async () => {
@@ -21,8 +20,7 @@ export default function SignOutButton() {
           return;
         }
         toast.success('Signed out');
-        // page refresh and triggers the middleware redirect to the sign-in page since the user is no longer authenticated
-        router.refresh();
+        router.replace('/');
       } catch {
         toast.error('An unexpected error occurred');
       }

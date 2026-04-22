@@ -44,13 +44,6 @@ export async function signInAction(values: SignInData) {
     return { success: false, message: 'Identity error.' };
   }
 
-  console.log(
-    'Attempting sign-in for username:',
-    username,
-    'with email:',
-    authUser.user.email,
-  );
-
   // 4. Authenticate
   const { data: authData, error: authError } =
     await supabase.auth.signInWithPassword({
@@ -62,7 +55,7 @@ export async function signInAction(values: SignInData) {
     if (authError.code === 'email_not_confirmed') {
       // Log the specific event
       await supabaseAdmin.from('activity_logs').insert({
-        user_id: profile.id, // We have the ID from step 1
+        user_id: profile.id,
         username,
         event_type: 'SIGN_IN_UNVERIFIED',
         status: 'FAILURE',
@@ -121,7 +114,7 @@ export async function signInAction(values: SignInData) {
   });
 
   revalidatePath('/', 'layout');
-  return { success: true, redirectTo: '/verification' };
+  return { success: true };
 }
 
 export async function signOutAction() {

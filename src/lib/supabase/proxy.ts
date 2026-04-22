@@ -1,6 +1,16 @@
 import { createServerClient } from '@supabase/ssr';
 import { NextResponse, type NextRequest } from 'next/server';
 import { createAdminClient } from './server';
+import { ROUTES } from '../constant/routes';
+
+export function isRoute(pathname: string, route: string) {
+  if (route.includes('[')) {
+    // e.g., route = '/user/[id]'
+    const base = route.split('[')[0];
+    return pathname.startsWith(base);
+  }
+  return pathname === route || pathname.startsWith(`${route}/`);
+}
 
 export async function updateSession(request: NextRequest) {
   let supabaseResponse = NextResponse.next({
@@ -45,52 +55,91 @@ export async function updateSession(request: NextRequest) {
   // Use getClaims for high-performance local JWT verification (User Session)
   const { data, error } = await supabase.auth.getClaims();
   const user = data?.claims;
-  // CUSTOM: Check for our security question completion flag
-  const is2faVerified = request.cookies.get('2fa-verified')?.value === 'true';
   const { pathname } = request.nextUrl;
 
-  const userRole = user?.user_metadata?.role;
-  // GATE 1: No user session exists
+  const isSignInPage = isRoute(pathname, ROUTES.SIGN_IN);
+  const isResetPage = isRoute(pathname, ROUTES.RESET_PASSWORD);
+  const isSetupPage = isRoute(pathname, ROUTES.PROFILE_SETUP);
+  const isVerifyPage = isRoute(pathname, ROUTES.VERIFICATION);
+  const isRootPage = pathname === ROUTES.ROOT;
+  const isAdminConsolePage = isRoute(pathname, ROUTES.ADMIN_CONSOLE);
+
+  if (isResetPage) {
+    const token =
+      request.nextUrl.searchParams.get('code') ||
+      request.nextUrl.searchParams.get('token');
+    console.log('Reset token:', token);
+    if (!token) {
+      // No token, redirect to sign-in
+      return NextResponse.redirect(new URL(ROUTES.SIGN_IN, request.url));
+    }
+    // Optionally: verify token validity here
+  }
+
+  // GATE 1: Authentication
   if (!user) {
-    // Redirect if they aren't on the sign-in or public auth routes
-    if (!pathname.startsWith('/sign-in') && !pathname.startsWith('/auth')) {
-      return NextResponse.redirect(new URL('/sign-in', request.url));
+    if (!isSignInPage) {
+      return NextResponse.redirect(new URL(ROUTES.SIGN_IN, request.url));
     }
     return supabaseResponse;
   }
 
-  // GATE 2: User is logged in but hasn't passed the Security Question
-  // We exclude the verification page and auth callback routes to avoid loops
-  if (
-    !is2faVerified &&
-    !pathname.startsWith('/verification') &&
-    !pathname.startsWith('/auth')
-  ) {
-    return NextResponse.redirect(new URL('/verification', request.url));
+  const supabaseAdmin = await createAdminClient();
+  const { data: profile } = await supabaseAdmin
+    .from('profiles')
+    .select('is_setup_complete, role_id')
+    .eq('id', user.sub)
+    .single();
+
+  if (process.env.NODE_ENV === 'development') {
+    console.log('User Profile:', profile);
+  }
+  // If setup is NOT complete, force them to the setup page
+
+  // GATE 2: Setup Completion
+  if (profile && !profile.is_setup_complete && !isSetupPage && !isSignInPage) {
+    return NextResponse.redirect(new URL(ROUTES.PROFILE_SETUP, request.url));
+  }
+  if (profile && !profile.is_setup_complete) {
+    return supabaseResponse;
   }
 
-  // GATE 3: User is fully verified, prevent them from going back to login/verify
-  if (is2faVerified) {
-    // If they try to go to Login or Verification, send them to their dashboard
-    if (
-      pathname === '/' ||
-      pathname === '/sign-in' ||
-      pathname === '/verification'
-    ) {
-      const dashboard = userRole === 0 ? '/admin-console' : '/user';
-      return NextResponse.redirect(new URL(dashboard, request.url));
-    }
+  const is2faVerified = request.cookies.get('2fa-verified')?.value === 'true';
 
-    // GATE 4: Role-Based Access Control (Admin only zones)
-    if (pathname.startsWith('/admin-console') && userRole !== 0) {
-      return NextResponse.redirect(new URL('/user', request.url));
-    }
+  if (profile?.is_setup_complete && isSetupPage) {
+    const dashboard =
+      profile.role_id === 0 ? ROUTES.ADMIN_CONSOLE : ROUTES.USER_DASHBOARD;
+    return NextResponse.redirect(new URL(dashboard, request.url));
   }
 
-  const isProfileWithId = pathname.startsWith('/user') && pathname !== '/user';
+  if (!is2faVerified && !isVerifyPage) {
+    return NextResponse.redirect(new URL(ROUTES.VERIFICATION, request.url));
+  }
+  if (!is2faVerified) {
+    return supabaseResponse;
+  }
 
-  if (isProfileWithId && userRole !== 0) {
-    return NextResponse.redirect(new URL('/user', request.url));
+  // GATE 4: Final Routing & RBAC
+  if (isSignInPage || isSetupPage || isVerifyPage || isRootPage) {
+    const dashboard =
+      profile?.role_id === 0 ? ROUTES.ADMIN_CONSOLE : ROUTES.USER_DASHBOARD;
+    return NextResponse.redirect(new URL(dashboard, request.url));
+  }
+  // 8. RBAC: non-admins can't access admin-console
+  if (isAdminConsolePage && profile?.role_id !== 0) {
+    return NextResponse.redirect(new URL(ROUTES.USER_DASHBOARD, request.url));
+  }
+
+  // Update Activity Heartbeat
+  if (user) {
+    await supabaseAdmin
+      .from('profiles')
+      .update({
+        last_seen: new Date().toISOString(),
+        is_active: true,
+      })
+      .eq('id', user.sub);
+    if (error) console.error('Heartbeat update failed:', error);
   }
 
   // IMPORTANT: You *must* return the supabaseResponse object as it is. If you're
@@ -106,20 +155,5 @@ export async function updateSession(request: NextRequest) {
   // If this is not done, you may be causing the browser and server to go out
   // of sync and terminate the user's session prematurely!
 
-  if (user) {
-    // We use createAdminClient here because standard users shouldn't
-    // have permission to update their own 'last_seen' via RLS usually.
-    const supabaseAdmin = await createAdminClient();
-
-    // OPTIONAL: Only update once every 60 seconds to save database performance
-    // You can skip this if your project is small/for school.
-    await supabaseAdmin
-      .from('profiles')
-      .update({
-        last_seen: new Date().toISOString(),
-        is_active: true, // Ensure they aren't marked as inactive if they are moving around
-      })
-      .eq('id', user.sub); // user.sub is the ID in JWT claims
-  }
   return supabaseResponse;
 }

@@ -31,13 +31,13 @@ export default function LiveTerminalLogs({ initialLogs }: AdminConsoleProps) {
   return (
     <div className="flex gap-4">
       <Card className="border-border/80 flex-1/2 overflow-hidden">
-        <CardHeader className="bg-slate-50 border-b">
+        <CardHeader className="border-b">
           <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-2 sm:gap-0">
-            <CardTitle className="text-xs uppercase flex items-center gap-2 text-slate-600">
+            <CardTitle className="text-base uppercase tracking-wider flex items-center gap-2">
               <SquareTerminal size={20} /> Live System Activity Console Log
             </CardTitle>
             <div className="flex gap-1 mt-2 sm:mt-0">
-              <div className="w-2 h-2 rounded-full bg-slate-200" />
+              <div className="w-2 h-2 rounded-full aspect-square bg-slate-200" />
               <div className="w-2 h-2 rounded-full bg-slate-200" />
               <div className="w-2 h-2 rounded-full bg-slate-200" />
             </div>

@@ -15,6 +15,7 @@ import { Label } from '@/components/ui/label';
 import UpdateProfileSheetForm from './UpdateProfileSheetForm';
 import DeleteUserDialog from './DeleteUserDialog';
 import ReactivateUserDialog from './ReactivateUserDialog';
+import { is } from 'zod/v4/locales';
 
 interface ProfileViewProps {
   profile: any;
@@ -60,61 +61,54 @@ export default function ProfileView({
         </div>
       )}
 
-      <Card className="border-border/60 shadow-none bg-background/50 backdrop-blur-sm relative overflow-hidden">
-        {/* Subtle Background Pattern (Nothing Aesthetic) */}
-        <div className="absolute inset-0 opacity-[0.03] pointer-events-none bg-[radial-gradient(#e5e7eb_1px,transparent_1px)] bg-size-[16px_16px]" />
-
-        <CardHeader className="border-b-2 border-border/40 pb-6 relative z-10">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-4">
-              <div>
-                <CardTitle className="text-2xl tracking-none">
-                  {profile.username}
-                </CardTitle>
-                <div className="flex gap-2 mt-1">
-                  <Badge
-                    variant={isAdmin ? 'default' : 'secondary'}
-                    className="rounded-sm px-2 text-xs tracking-widest uppercase"
-                  >
-                    {isAdmin ? 'Admin_Access' : 'Standard_User'}
-                  </Badge>
-                  {isOwner && (
-                    <Badge
-                      variant="outline"
-                      className=" rounded-sm text-xs tracking-widest border-primary/20 text-primary"
-                    >
-                      OWNER
-                    </Badge>
-                  )}
-                </div>
-              </div>
-            </div>
-            <div className="flex items-center gap-2">
-              {!isDeleted && isActive && (
-                <>
-                  <UpdateProfileSheetForm
-                    profile={profile}
-                    securityQuestions={securityQuestions}
-                    roles={roles}
-                  />
-                  <DeleteUserDialog
-                    userId={profile.id}
-                    username={profile.username}
-                  />
-                </>
-              )}
-
-              {(isDeleted || !isActive) && (
-                <ReactivateUserDialog
-                  userId={profile.id}
-                  username={profile.username}
-                />
+      <Card className="border-border/60 flex-1">
+        <CardHeader className=" flex items-center pb-4 justify-between">
+          <div className="flex flex-col">
+            <CardTitle className="text-2xl tracking-none">
+              {profile.username}
+            </CardTitle>
+            <div className="flex gap-2 mt-1">
+              <Badge
+                variant={isAdmin ? 'default' : 'secondary'}
+                className="rounded-sm px-2 text-xs tracking-widest uppercase"
+              >
+                {isAdmin ? 'Admin_Access' : 'Standard_User'}
+              </Badge>
+              {isOwner && (
+                <Badge
+                  variant="outline"
+                  className=" rounded-sm text-xs tracking-widest border-primary/20 text-primary"
+                >
+                  OWNER
+                </Badge>
               )}
             </div>
           </div>
+          <div className="flex items-center gap-2">
+            {!isDeleted && isActive && (
+              <>
+                <UpdateProfileSheetForm
+                  profile={profile}
+                  securityQuestions={securityQuestions}
+                  roles={roles}
+                />
+                <DeleteUserDialog
+                  userId={profile.id}
+                  username={profile.username}
+                />
+              </>
+            )}
+
+            {(isDeleted || !isActive) && (
+              <ReactivateUserDialog
+                userId={profile.id}
+                username={profile.username}
+              />
+            )}
+          </div>
         </CardHeader>
 
-        <CardContent className="pt-6 grid grid-cols-1 md:grid-cols-2 gap-8 relative z-10">
+        <CardContent className="py-2 grid grid-cols-1 md:grid-cols-2 gap-8 relative z-10">
           {/* Column 1: Identity & Access */}
           <div className="space-y-6">
             <div className="flex flex-col gap-1">
@@ -122,7 +116,7 @@ export default function ProfileView({
                 <Fingerprint size={12} /> User_Identifier
               </Label>
               <p className="font-mono text-xs break-all text-muted-foreground uppercase">
-                {isOwner ? 'PROTECTED_BY_OWNER' : profile.id}
+                {isOwner ? profile.id : 'PROTECTED_BY_OWNER'}
               </p>
             </div>
 
@@ -213,7 +207,7 @@ export default function ProfileView({
       </Card>
 
       {/* Security Question (Only for Owner or Admin to verify it exists) */}
-      <div className="p-4 border border-dashed border-border/60 rounded-none bg-muted/5 flex items-center justify-between">
+      <div className="p-4 border-2 border-dashed border-border/60 rounded-md bg-card/50 flex items-center justify-between">
         <div className="space-y-1">
           <p className="text-sm uppercase tracking-tighter flex items-center gap-1 text-muted-foreground">
             <Shield size={12} />

@@ -10,7 +10,9 @@ interface AuthContextType {
   isLoading: boolean;
 }
 
-const AuthContext = createContext<AuthContextType | undefined>(undefined);
+export const AuthContext = createContext<AuthContextType | undefined>(
+  undefined,
+);
 
 export default function AuthProvider({
   children,
@@ -61,7 +63,6 @@ export default function AuthProvider({
 
     return () => subscription.unsubscribe();
   }, [supabase, user?.id]);
-
   return (
     <AuthContext.Provider value={{ user, role, isLoading }}>
       {children}

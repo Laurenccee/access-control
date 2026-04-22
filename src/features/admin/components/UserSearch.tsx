@@ -16,6 +16,9 @@ export default function UserSearch({
 }) {
   return (
     <Field>
+      <FieldLabel className="uppercase text-xs tracking-[0.2em] text-muted-foreground ml-1">
+        Search Users
+      </FieldLabel>
       <InputGroup className="focus-within:ring-1 focus-within:ring-ring/50">
         <InputGroupInput
           value={value}

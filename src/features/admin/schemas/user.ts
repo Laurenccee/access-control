@@ -1,42 +1,68 @@
 import z from 'zod';
+import { is } from 'zod/v4/locales';
 
-export const UserSchema = {
-  username: z
-    .string()
-    .min(3, 'Username must be at least 3 characters')
-    .regex(/^[a-zA-Z0-9_]+$/, 'No special characters allowed'),
-  email: z.string().email(),
-  password: z
-    .string()
-    .min(8, 'Password must be at least 8 characters')
-    .regex(/[A-Z]/, 'Must include an uppercase letter')
-    .regex(/[a-z]/, 'Must include a lowercase letter')
-    .regex(/[0-9]/, 'Must include a number'),
-  security_question_id: z.string().uuid('Invalid security question selection'),
-  security_answer: z.string().min(1, 'Security answer is required'),
+/** * BASE RULES
+ * We keep the logic here so we don't repeat the regex 100 times.
+ **/
+const usernameRule = z
+  .string()
+  .min(3, 'Username must be at least 3 characters')
+  .regex(/^[a-zA-Z0-9_]+$/, 'No special characters');
+const emailRule = z.string().email();
+const passwordRule = z
+  .string()
+  .min(8, 'Password must be at least 8 characters')
+  .regex(/[A-Z]/, 'Must include uppercase')
+  .regex(/[a-z]/, 'Must include lowercase')
+  .regex(/[0-9]/, 'Must include a number');
+
+// --- 1. ADMIN ACTION: CREATE USER ---
+// Used when the Admin is provisioning a new account
+export const CreateUserSchema = z.object({
+  username: usernameRule,
+  email: emailRule,
   role_id: z.union([z.literal(0), z.literal(1)]), // ← drop z.coerce here
-};
-
-export const CreateUserSchema = z
-  .object({
-    ...UserSchema,
-    confirmPassword: z.string(),
-  })
-  .refine((data) => data.password === data.confirmPassword, {
-    path: ['confirmPassword'],
-    message: "Passwords don't match",
-  });
-
-export const UpdateUserSchema = z.object({
-  username: UserSchema.username.optional(),
-  email: UserSchema.email.optional(),
-  password: UserSchema.password.optional().or(z.literal('')), // Allow empty string for "no change"
-  security_question_id: UserSchema.security_question_id.optional(),
-  // CHANGE THIS: Match the form field name
-  security_answer: UserSchema.security_answer.optional().or(z.literal('')), // Allow empty string for "no change"
-  role_id: UserSchema.role_id.optional(),
 });
 
-export type User = z.infer<typeof UserSchema>;
+// --- 2. USER ACTION: UPDATE PROFILE ---
+// Used by the user on their dashboard. Note: NO role_id here!
+export const UpdateProfileSchema = z.object({
+  username: usernameRule.optional(),
+  email: emailRule.optional(),
+  // For updates, we allow optional/empty so the DB doesn't overwrite with null
+  password: passwordRule.optional().or(z.literal('')),
+  security_question_id: z.string().uuid().optional(),
+  security_answer: z.string().optional().or(z.literal('')),
+});
+
+// --- 3. ADMIN ACTION: UPDATE USER ---
+// If the Admin needs to change someone else's role or fix an account
+export const AdminUpdateUserSchema = UpdateProfileSchema.extend({
+  role_id: z.coerce
+    .number()
+    .pipe(z.union([z.literal(0), z.literal(1)]))
+    .optional(),
+});
+
+export const ProfileSetupSchema = z
+  .object({
+    password: passwordRule,
+    confirmPassword: z.string(),
+
+    security_question_id: z.string().uuid(),
+    security_answer: z.string(),
+  })
+  .refine((data) => data.password === data.confirmPassword);
+
+export const ResetPasswordSchema = z
+  .object({
+    password: passwordRule,
+    confirmPassword: z.string(),
+  })
+  .refine((data) => data.password === data.confirmPassword);
+
 export type CreateUser = z.infer<typeof CreateUserSchema>;
-export type UpdateUser = z.infer<typeof UpdateUserSchema>;
+export type UpdateProfile = z.infer<typeof UpdateProfileSchema>;
+export type AdminUpdateUser = z.infer<typeof AdminUpdateUserSchema>;
+export type ProfileSetup = z.infer<typeof ProfileSetupSchema>;
+export type ResetPassword = z.infer<typeof ResetPasswordSchema>;

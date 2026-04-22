@@ -2,6 +2,7 @@
 import { createClient, createAdminClient } from '@/lib/supabase/server';
 import { notFound, redirect } from 'next/navigation';
 import ProfileView from '@/features/user/components/ProfileView';
+import { is } from 'zod/v4/locales';
 
 export default async function AdminUserLookup({
   params,
@@ -32,6 +33,7 @@ export default async function AdminUserLookup({
 
   if (profileRes.error || !profileRes.data) return notFound();
 
+  console.log(isOwner);
   return (
     <div className="p-6">
       {/* 4. Pass the dynamic isOwner value */}

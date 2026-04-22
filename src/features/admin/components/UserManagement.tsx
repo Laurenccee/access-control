@@ -2,7 +2,13 @@
 
 import { useMemo, useState } from 'react';
 import { Users } from 'lucide-react';
-import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
+import {
+  Card,
+  CardHeader,
+  CardTitle,
+  CardContent,
+  CardDescription,
+} from '@/components/ui/card';
 import {
   useReactTable,
   getCoreRowModel,
@@ -62,8 +68,16 @@ export default function UserManagement({
 
       {/* Right Side: Main Content */}
       <div className="flex-1/3">
-        <Card className="border-border/60 h-full">
-          <CardContent className="flex flex-1 flex-col gap-4 pt-6">
+        <Card className="border-border/60  h-full">
+          <CardHeader className="pb-4">
+            <CardTitle className="text-base flex items-center gap-2 uppercase tracking-wider">
+              User Management
+            </CardTitle>
+            <CardDescription className="text-xs text-muted-foreground">
+              View, search, and manage all user accounts in the system.
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="flex flex-1 flex-col gap-4">
             <UserSearch value={globalFilter} onChange={setGlobalFilter} />
             <UserDataTable
               table={table}

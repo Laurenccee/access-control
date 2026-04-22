@@ -54,19 +54,19 @@ Create at least 2 roles:
     Admin
     User
 
-    ✔Admin Access:
+[/] ✔Admin Access:
 
     View all users
     Add/Delete users
     View login attempts/logs
 
-    ✔User Access:
+[/] ✔User Access:
 
     Limited features only (e.g., view profile)
     Prevent users from accessing admin pages manually
     NEW ADVANCED SECURITY FEATURES (REQUIRED)
 
-[] Task 5: Input Validation & Error Handling
+[/] Task 5: Input Validation & Error Handling
 
     Prevent invalid inputs (empty fields, wrong formats)
     Display user-friendly error messages
@@ -79,7 +79,7 @@ Create at least 2 roles:
     Add Logout button
     Prevent access to pages after logout
 
-[] Task 7: Activity Logging
+[/] Task 7: Activity Logging
 
     Record:
     Login attempts (success/failed)
@@ -119,8 +119,8 @@ Grading Criteria
 BONUS FEATURES (Optional but HIGHLY ENCOURAGED)
 
 [ ] OTP (One-Time Password simulation)
-[ ] Email verification simulation
+[/] Email verification simulation
 [ ] CAPTCHA (simple math question)
 [ ] Account recovery system
-[ ] Database integration ( MySQL)
+[/] Database integration ( MySQL)
 [ ] Password reset feature

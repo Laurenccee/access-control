@@ -42,7 +42,7 @@ export default function DeleteUserDialog({
       if (result.success) {
         toast.success(`Account ${username} deactivated.`);
         // Navigate away after success
-        router.replace('/admin-console');
+        router.replace('/');
       } else {
         toast.error(result.message || 'Deactivation failed.');
       }

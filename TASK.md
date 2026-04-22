@@ -48,7 +48,7 @@ Core Security Features (REQUIRED TASKS)
     Add cooldown timer (30 seconds before retry)
     Display warning messages
 
-[] Task 4: Role-Based Access Control (RBAC)
+[/] Task 4: Role-Based Access Control (RBAC)
 Create at least 2 roles:
 
     Admin
@@ -118,9 +118,9 @@ Grading Criteria
 
 BONUS FEATURES (Optional but HIGHLY ENCOURAGED)
 
-[ ] OTP (One-Time Password simulation)
+[/] OTP (One-Time Password simulation)
 [/] Email verification simulation
 [ ] CAPTCHA (simple math question)
-[ ] Account recovery system
+[/] Account recovery system
 [/] Database integration ( MySQL)
-[ ] Password reset feature
+[/] Password reset feature

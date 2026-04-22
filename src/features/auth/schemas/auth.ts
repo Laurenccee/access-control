@@ -1,5 +1,5 @@
 // /lib/validations.ts
-import { z } from 'zod';
+import { email, z } from 'zod';
 
 export const SignInSchema = z.object({
   username: z
@@ -19,6 +19,13 @@ export const SecurityQuestionSchema = z.object({
   answer: z.string().min(1, 'Answer cannot be empty'),
 });
 
+export const OTPSchema = z.object({
+  code: z.string().length(8, 'OTP must be 8 characters long'),
+});
+export const EmailSignInSchema = z.object({
+  email: z.string().email('Invalid email address'),
+});
+
 export const UserRole = {
   ADMIN: 'ADMIN',
   USER: 'USER',
@@ -26,5 +33,6 @@ export const UserRole = {
 
 export type SignInData = z.infer<typeof SignInSchema>;
 export type SecurityQuestionData = z.infer<typeof SecurityQuestionSchema>;
-
+export type OTPData = z.infer<typeof OTPSchema>;
+export type EmailSignInData = z.infer<typeof EmailSignInSchema>;
 export type Role = keyof typeof UserRole;

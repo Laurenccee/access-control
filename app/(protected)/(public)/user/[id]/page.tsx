@@ -33,7 +33,6 @@ export default async function AdminUserLookup({
 
   if (profileRes.error || !profileRes.data) return notFound();
 
-  console.log(isOwner);
   return (
     <div className="p-6">
       {/* 4. Pass the dynamic isOwner value */}

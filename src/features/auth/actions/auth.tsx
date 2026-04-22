@@ -4,6 +4,7 @@ import { createAdminClient, createClient } from '@/lib/supabase/server';
 import { revalidatePath } from 'next/cache';
 import { SignInData, SignInSchema } from '../schemas/auth';
 import { cookies } from 'next/headers';
+import { logActivity } from '@/lib/helper/auth';
 
 export async function signInAction(values: SignInData) {
   const validatedFields = SignInSchema.safeParse(values);
@@ -131,10 +132,10 @@ export async function signOutAction() {
   if (user) {
     const username = user.user_metadata?.username || 'Unknown';
 
-    await supabaseAdmin.from('activity_logs').insert({
-      user_id: user.id,
-      username,
-      event_type: 'SIGN_OUT',
+    await logActivity(supabaseAdmin, {
+      userId: user.id,
+      username: username || 'Admin',
+      event: `SIGN_OUT`,
       status: 'SUCCESS',
     });
   }

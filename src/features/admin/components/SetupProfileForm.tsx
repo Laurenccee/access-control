@@ -27,9 +27,9 @@ import {
   ProfileSetupSchema,
 } from '@/features/admin/schemas/user';
 import InputField from '@/components/shared/InputField';
-import PasswordRulesCard from './PasswordRulesCard';
+import PasswordRulesCard from '../../auth/components/PasswordRulesCard';
 import SelectionField from '@/components/shared/SelectionField';
-import { setupProfileAction } from '../actions/profile';
+import { setupProfileAction } from '../../auth/actions/profile';
 
 interface SetupProfileFormProps {
   securityQuestions: any[];
@@ -91,7 +91,7 @@ export default function SetupProfileForm({
 
   return (
     <Card className="w-full max-w-[95%] sm:max-w-md mx-auto border-border/40 transition-all">
-      <CardHeader className=" pt-4">
+      <CardHeader className="gap-2 pb-4">
         <CardTitle className="uppercase text-2xl sm:text-3xl text-center tracking-[0.15em] leading-none">
           Finalize Your Profile
         </CardTitle>

@@ -78,7 +78,6 @@ export default function UpdateProfileSheetForm({
     startTransition(async () => {
       try {
         // Call the server action with the target user's ID and the form data
-        console.log('Update Result:', data);
         const result = await updateUserAction(profile.id, data);
 
         if (result.success) {
@@ -118,8 +117,6 @@ export default function UpdateProfileSheetForm({
     });
   };
 
-  console.log('profile.security_question_id:', profile?.security_question_id);
-  console.log('securityOptions:', securityOptions);
   return (
     <Sheet>
       <Tooltip>

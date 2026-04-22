@@ -87,8 +87,8 @@ export default function SignInForm() {
     }
   };
   return (
-    <Card className="w-full max-w-[95%] sm:max-w-md mx-auto border-border/40 transition-all duration-300">
-      <CardHeader className="gap-2 pt-4">
+    <Card className="w-full mx-auto border-border/40 transition-all duration-300">
+      <CardHeader className="gap-2 pb-4">
         <CardTitle className="uppercase text-2xl sm:text-3xl text-center leading-none">
           Sign In
         </CardTitle>

@@ -63,12 +63,23 @@ export async function updateSession(request: NextRequest) {
   const isVerifyPage = isRoute(pathname, ROUTES.VERIFICATION);
   const isRootPage = pathname === ROUTES.ROOT;
   const isAdminConsolePage = isRoute(pathname, ROUTES.ADMIN_CONSOLE);
+  const isOTPVerificationPage = isRoute(pathname, ROUTES.OTP_CERIFICATION);
+
+  if (isOTPVerificationPage) {
+    const email =
+      request.nextUrl.searchParams.get('code') ||
+      request.nextUrl.searchParams.get('token') ||
+      request.nextUrl.searchParams.get('email');
+    if (!email) {
+      // Redirect to sign-in if no email param
+      return NextResponse.redirect(new URL(ROUTES.SIGN_IN, request.url));
+    }
+  }
 
   if (isResetPage) {
     const token =
       request.nextUrl.searchParams.get('code') ||
       request.nextUrl.searchParams.get('token');
-    console.log('Reset token:', token);
     if (!token) {
       // No token, redirect to sign-in
       return NextResponse.redirect(new URL(ROUTES.SIGN_IN, request.url));
@@ -78,7 +89,7 @@ export async function updateSession(request: NextRequest) {
 
   // GATE 1: Authentication
   if (!user) {
-    if (!isSignInPage) {
+    if (!isSignInPage && !isOTPVerificationPage) {
       return NextResponse.redirect(new URL(ROUTES.SIGN_IN, request.url));
     }
     return supabaseResponse;
@@ -91,9 +102,6 @@ export async function updateSession(request: NextRequest) {
     .eq('id', user.sub)
     .single();
 
-  if (process.env.NODE_ENV === 'development') {
-    console.log('User Profile:', profile);
-  }
   // If setup is NOT complete, force them to the setup page
 
   // GATE 2: Setup Completion

@@ -1,7 +1,5 @@
 import NavBar from '@/components/layouts/NavBar';
-import { ThemeToggle } from '@/components/shared/ThemeToggle';
 import SecurityQuestionForm from '@/features/auth/components/SecurityQuestionForm';
-import SignOutButton from '@/features/auth/components/SignOutButton';
 import { createAdminClient, createClient } from '@/lib/supabase/server';
 import { redirect } from 'next/navigation';
 

@@ -1,4 +1,4 @@
-import SetupProfileForm from '@/features/auth/components/SetupProfileForm';
+import SetupProfileForm from '@/features/admin/components/SetupProfileForm';
 import { createAdminClient, createClient } from '@/lib/supabase/server';
 import React from 'react';
 

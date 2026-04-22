@@ -172,7 +172,6 @@ export async function updateUserAction(targetUserId: string, values: any) {
 export async function triggerPasswordResetAction(email: string) {
   const supabaseAdmin = await createAdminClient();
 
-  console.log('RedirectTo:', `${process.env.SITE_URL}/reset`);
   const { error } = await supabaseAdmin.auth.resetPasswordForEmail(email, {
     redirectTo: `${process.env.SITE_URL}/reset`,
   });

@@ -4,6 +4,7 @@ import SignOutButton from '@/features/auth/components/SignOutButton';
 import { useAuth } from '@/hooks/useAuth';
 import Link from 'next/link';
 import { ThemeToggle } from '../shared/ThemeToggle';
+import Image from 'next/image';
 
 export default function NavBar() {
   // Gina Check if ang user hay Admin
@@ -21,13 +22,20 @@ export default function NavBar() {
           <div className="flex items-center gap-4">
             {/* Pag may user nga wala pa na verify, hindi ipakita ang link sa verification page */}
             {!isVerificationPage && (
-              <Link
-                href="/verification"
-                className="hover:opacity-90 transition-opacity"
-              >
-                <p className="text-lg md:text-2xl uppercase text-primary">
-                  {isAdmin ? 'Admin Access Control' : 'User Dashboard'}
-                </p>
+              <Link href="/" className="hover:opacity-90 transition-opacity">
+                <div className="flex items-center gap-4">
+                  <Image
+                    src="/favicon.ico"
+                    alt="Vaultify Logo"
+                    width={32}
+                    height={32}
+                    className="rounded"
+                    priority
+                  />
+                  <p className="text-lg md:text-2xl uppercase text-primary">
+                    {isAdmin ? 'Admin Access Control' : 'User Dashboard'}
+                  </p>
+                </div>
               </Link>
             )}
           </div>

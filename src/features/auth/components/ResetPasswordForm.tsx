@@ -5,7 +5,7 @@ import { useTransition } from 'react';
 import { SubmitHandler, useForm, useWatch } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { toast } from 'sonner';
-import { ArrowRight, Loader2, RectangleEllipsis, Shield } from 'lucide-react';
+import { ArrowRight, Loader2, RectangleEllipsis } from 'lucide-react';
 
 import { Button } from '@/components/ui/button';
 import {
@@ -17,16 +17,14 @@ import {
   CardTitle,
 } from '@/components/ui/card';
 import {
-  ProfileSetup,
-  ProfileSetupSchema,
   ResetPassword,
   ResetPasswordSchema,
 } from '@/features/admin/schemas/user';
 import InputField from '@/components/shared/InputField';
 import PasswordRulesCard from './PasswordRulesCard';
-import { resetPasswordAction, setupProfileAction } from '../actions/profile';
+import { resetPasswordAction } from '../actions/profile';
 
-export default function ResetProfileForm({}) {
+export default function ResetPasswordForm({}) {
   const [isPending, startTransition] = useTransition();
   const router = useRouter();
   const { control, handleSubmit, reset } = useForm<ResetPassword>({

@@ -120,7 +120,7 @@ BONUS FEATURES (Optional but HIGHLY ENCOURAGED)
 
 [/] OTP (One-Time Password simulation)
 [/] Email verification simulation
-[ ] CAPTCHA (simple math question)
+[/] CAPTCHA (simple math question)
 [/] Account recovery system
 [/] Database integration ( MySQL)
 [/] Password reset feature

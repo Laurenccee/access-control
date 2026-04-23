@@ -1,5 +1,4 @@
 import OTPForm from '@/features/auth/components/OTPForm';
-import React from 'react';
 
 export default function OTPVerification() {
   return (

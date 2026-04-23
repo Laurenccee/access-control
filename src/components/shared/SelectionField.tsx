@@ -22,7 +22,7 @@ interface SelectionFieldProps<T extends FieldValues> {
   isPending?: boolean;
   description?: string;
   options: { value: string; label: string }[];
-  transform?: (value: string) => PathValue<T, Path<T>>; // ← tied to actual field type
+  transform?: (value: string) => PathValue<T, Path<T>>;
 }
 
 export default function SelectionField<T extends FieldValues>({

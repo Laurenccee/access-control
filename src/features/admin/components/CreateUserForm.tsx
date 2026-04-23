@@ -7,24 +7,16 @@ import {
   CardHeader,
   CardTitle,
 } from '@/components/ui/card';
-import {
-  Loader2,
-  Mail,
-  RectangleEllipsis,
-  Shield,
-  SquarePlus,
-  User,
-} from 'lucide-react';
-import { useTransition } from 'react';
-import { SubmitHandler, useForm, useWatch } from 'react-hook-form';
+import { Loader2, Mail, SquarePlus, User } from 'lucide-react';
+import { useState, useTransition } from 'react';
+import { SubmitHandler, useForm } from 'react-hook-form';
 import { CreateUser, CreateUserSchema } from '../schemas/user';
 import InputField from '@/components/shared/InputField';
-import PasswordRulesCard from '@/features/auth/components/PasswordRulesCard';
 import SelectionField from '@/components/shared/SelectionField';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { addUserAction } from '../actions/user';
 import { toast } from 'sonner';
-import { Resolver } from 'react-hook-form';
+import CaptchaAlertDialog from '@/components/shared/CaptchaAlertDialog';
 
 interface Role {
   id: number;
@@ -38,6 +30,20 @@ interface CreateUserFormProps {
 
 export default function CreateUserForm({ roles }: CreateUserFormProps) {
   const [isPending, startTransistion] = useTransition();
+  const [captchaOpen, setCaptchaOpen] = useState(false);
+  const [pendingData, setPendingData] = useState<CreateUser | null>(null);
+
+  const onSubmit = (data: CreateUser) => {
+    setPendingData(data);
+    setCaptchaOpen(true);
+  };
+  const handleCaptchaSuccess = () => {
+    setCaptchaOpen(false);
+    if (pendingData) {
+      handleCreateUser(pendingData);
+      setPendingData(null);
+    }
+  };
 
   const roleOptions = roles.map((r) => ({
     value: String(r.id),
@@ -82,7 +88,7 @@ export default function CreateUserForm({ roles }: CreateUserFormProps) {
       </CardHeader>
       <form
         action=""
-        onSubmit={handleSubmit(handleCreateUser)}
+        onSubmit={handleSubmit(onSubmit)}
         id="user-create-form"
         className="flex-1"
       >
@@ -118,6 +124,11 @@ export default function CreateUserForm({ roles }: CreateUserFormProps) {
           </div>
         </CardContent>
       </form>
+      <CaptchaAlertDialog
+        open={captchaOpen}
+        onOpenChange={setCaptchaOpen}
+        onSuccess={handleCaptchaSuccess}
+      />
       <CardFooter>
         <Button
           size="lg"

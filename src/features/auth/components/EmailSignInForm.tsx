@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useTransition } from 'react';
+import React, { useState, useTransition } from 'react';
 import { Button } from '@/components/ui/button';
 import {
   Card,
@@ -19,10 +19,25 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import { SubmitHandler, useForm } from 'react-hook-form';
 import { sendOTPToEmailAction } from '../actions/otp';
 import { toast } from 'sonner';
+import CaptchaAlertDialog from '@/components/shared/CaptchaAlertDialog';
 
 export default function EmailSignInForm() {
   const router = useRouter();
   const [isPending, startTransition] = useTransition();
+  const [captchaOpen, setCaptchaOpen] = useState(false);
+  const [pendingData, setPendingData] = useState<EmailSignInData | null>(null);
+
+  const onSubmit = (data: EmailSignInData) => {
+    setPendingData(data);
+    setCaptchaOpen(true);
+  };
+  const handleCaptchaSuccess = () => {
+    setCaptchaOpen(false);
+    if (pendingData) {
+      handleSignIn(pendingData);
+      setPendingData(null);
+    }
+  };
 
   const { control, handleSubmit } = useForm<EmailSignInData>({
     resolver: zodResolver(EmailSignInSchema),
@@ -60,7 +75,7 @@ export default function EmailSignInForm() {
         </CardDescription>
       </CardHeader>
 
-      <form onSubmit={handleSubmit(handleSignIn)} id="signin-form">
+      <form onSubmit={handleSubmit(onSubmit)} id="signin-form">
         <CardContent className="flex flex-col gap-5">
           <InputField
             name="email"
@@ -73,6 +88,12 @@ export default function EmailSignInForm() {
           />
         </CardContent>
       </form>
+
+      <CaptchaAlertDialog
+        open={captchaOpen}
+        onOpenChange={setCaptchaOpen}
+        onSuccess={handleCaptchaSuccess}
+      />
 
       <CardFooter className="flex flex-col gap-4 ">
         <Button

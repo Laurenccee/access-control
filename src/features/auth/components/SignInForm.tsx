@@ -2,26 +2,13 @@
 
 import { useState, useTransition } from 'react';
 import { useRouter } from 'next/navigation';
-import {
-  useForm,
-  Controller,
-  SubmitHandler,
-  FieldErrors,
-  useWatch,
-} from 'react-hook-form';
+import { useForm, SubmitHandler, FieldErrors, useWatch } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { toast } from 'sonner';
-import {
-  RectangleEllipsis,
-  Eye,
-  EyeClosed,
-  Loader2,
-  ArrowRight,
-  User,
-} from 'lucide-react';
+import { RectangleEllipsis, Loader2, ArrowRight, User } from 'lucide-react';
 
 import { SignInData, SignInSchema } from '../schemas/auth';
-import { signInAction } from '../actions/auth';
+import { resendVerificationEmailAction, signInAction } from '../actions/auth';
 import { Button } from '@/components/ui/button';
 import {
   Card,
@@ -31,23 +18,34 @@ import {
   CardHeader,
   CardTitle,
 } from '@/components/ui/card';
-import { Field, FieldLabel } from '@/components/ui/field';
-import {
-  InputGroup,
-  InputGroupAddon,
-  InputGroupButton,
-  InputGroupInput,
-} from '@/components/ui/input-group';
 import PasswordRulesCard from './PasswordRulesCard';
+import InputField from '@/components/shared/InputField';
+import CaptchaAlertDialog from '@/components/shared/CaptchaAlertDialog';
 
 export default function SignInForm() {
   const router = useRouter();
   const [isPending, startTransition] = useTransition();
-  const [showPassword, setShowPassword] = useState(false);
+  const [captchaOpen, setCaptchaOpen] = useState(false);
+  const [pendingData, setPendingData] = useState<SignInData | null>(null);
+
+  const onSubmit = (data: SignInData) => {
+    setPendingData(data);
+    setCaptchaOpen(true);
+  };
+  const handleCaptchaSuccess = () => {
+    setCaptchaOpen(false);
+    if (pendingData) {
+      handleSignIn(pendingData);
+      setPendingData(null);
+    }
+  };
 
   const { control, handleSubmit } = useForm<SignInData>({
     resolver: zodResolver(SignInSchema),
-    defaultValues: { username: '', password: '' },
+    defaultValues: {
+      username: '',
+      password: '',
+    },
   });
 
   const checkRules = (password: string = '') => ({
@@ -65,6 +63,15 @@ export default function SignInForm() {
       try {
         const result = await signInAction(data);
         if (result?.success === false) {
+          if (
+            result.code === 'email_not_confirmed' ||
+            result.message?.toLowerCase().includes('confirm your email')
+          ) {
+            const email = result.email || data.username;
+            await resendVerificationEmailAction(email);
+            router.replace('/');
+            return;
+          }
           toast.error(result.message || 'Access Denied');
           return;
         }
@@ -98,99 +105,55 @@ export default function SignInForm() {
         </CardDescription>
       </CardHeader>
 
-      <form onSubmit={handleSubmit(handleSignIn, onInvalid)} id="signin-form">
+      <form onSubmit={handleSubmit(onSubmit, onInvalid)} id="signin-form">
         <CardContent className="flex flex-col gap-5">
           {/* Username Field */}
-          <Controller
+          <InputField
             name="username"
+            label="Username"
             control={control}
-            render={({ field, fieldState }) => (
-              <Field data-invalid={fieldState.invalid}>
-                <FieldLabel
-                  htmlFor={field.name}
-                  className="uppercase text-[10px] tracking-[0.2em] text-muted-foreground ml-1"
-                >
-                  User Identity
-                </FieldLabel>
-                <InputGroup className="transition-all focus-within:ring-1 focus-within:ring-ring/50">
-                  <InputGroupInput
-                    {...field}
-                    autoComplete="username"
-                    placeholder="Enter Username"
-                    disabled={isPending}
-                    className="placeholder:text-muted-foreground/40 text-sm tracking-wide"
-                    aria-invalid={fieldState.invalid}
-                  />
-                  <InputGroupAddon className="text-muted-foreground/60">
-                    <User size={18} strokeWidth={1.5} />
-                  </InputGroupAddon>
-                </InputGroup>
-              </Field>
-            )}
+            isPending={isPending}
+            type="text"
+            placeholder="Enter Username"
+            leadingIcon={<User size={18} />}
           />
 
           {/* Password Field */}
-          <Controller
-            name="password"
-            control={control}
-            render={({ field, fieldState }) => (
-              <Field data-invalid={fieldState.invalid}>
-                <FieldLabel
-                  className="uppercase text-[10px] tracking-[0.2em] text-muted-foreground ml-1"
-                  htmlFor={field.name}
-                >
-                  Security Key
-                </FieldLabel>
-                <InputGroup className="transition-all ">
-                  <InputGroupInput
-                    {...field}
-                    type={showPassword ? 'text' : 'password'}
-                    autoComplete="current-password"
-                    placeholder="Enter Password"
-                    disabled={isPending}
-                    className="placeholder:text-muted-foreground/40 text-sm tracking-wide"
-                    aria-invalid={fieldState.invalid}
-                  />
-                  <InputGroupAddon className="text-muted-foreground/60">
-                    <RectangleEllipsis size={18} strokeWidth={1.5} />
-                  </InputGroupAddon>
-                  <InputGroupAddon align="inline-end">
-                    <InputGroupButton
-                      type="button"
-                      size="icon-xs"
-                      className="hover:bg-transparent"
-                      onClick={() => setShowPassword(!showPassword)}
-                    >
-                      {showPassword ? (
-                        <EyeClosed
-                          size={18}
-                          strokeWidth={1.5}
-                          className="text-muted-foreground/60 hover:text-foreground transition-colors"
-                        />
-                      ) : (
-                        <Eye
-                          size={18}
-                          strokeWidth={1.5}
-                          className="text-muted-foreground/60 hover:text-foreground transition-colors"
-                        />
-                      )}
-                    </InputGroupButton>
-                  </InputGroupAddon>
-                </InputGroup>
-              </Field>
-            )}
-          />
 
-          <div className="pt-2">
-            <PasswordRulesCard rules={rules} />
+          <div className="flex flex-col items-end">
+            <InputField
+              name="password"
+              label="Password"
+              control={control}
+              isPending={isPending}
+              type="password"
+              placeholder="Enter Password"
+              leadingIcon={<RectangleEllipsis size={18} />}
+            />
+            <Button
+              variant="link"
+              size="sm"
+              type="button"
+              onClick={() => router.push('/forget-password')}
+              disabled={isPending}
+            >
+              Forgot Password?
+            </Button>
           </div>
+          <PasswordRulesCard rules={rules} />
         </CardContent>
       </form>
+
+      <CaptchaAlertDialog
+        open={captchaOpen}
+        onOpenChange={setCaptchaOpen}
+        onSuccess={handleCaptchaSuccess}
+      />
 
       <CardFooter className="flex flex-col gap-4 ">
         <Button
           className="w-full uppercase text-xs tracking-[0.25em] h-10 transition-all active:scale-[0.98]"
-          disabled={isPending}
+          disabled={isPending || captchaOpen}
           type="submit"
           form="signin-form"
           variant="default"

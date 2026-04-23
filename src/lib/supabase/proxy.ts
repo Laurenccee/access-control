@@ -64,6 +64,9 @@ export async function updateSession(request: NextRequest) {
   const isRootPage = pathname === ROUTES.ROOT;
   const isAdminConsolePage = isRoute(pathname, ROUTES.ADMIN_CONSOLE);
   const isOTPVerificationPage = isRoute(pathname, ROUTES.OTP_CERIFICATION);
+  const isForgetPasswordPage = isRoute(pathname, ROUTES.FORGET_PASSWORD);
+
+  // This requires service role privileges!
 
   if (isOTPVerificationPage) {
     const email =
@@ -89,7 +92,12 @@ export async function updateSession(request: NextRequest) {
 
   // GATE 1: Authentication
   if (!user) {
-    if (!isSignInPage && !isOTPVerificationPage) {
+    if (
+      !isSignInPage &&
+      !isOTPVerificationPage &&
+      !isForgetPasswordPage &&
+      !isResetPage
+    ) {
       return NextResponse.redirect(new URL(ROUTES.SIGN_IN, request.url));
     }
     return supabaseResponse;

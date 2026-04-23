@@ -11,16 +11,21 @@ export default function LiveTerminalLogs({ initialLogs }: AdminConsoleProps) {
   const getEventLabel = (event: string) => {
     if (event === 'SIGN_IN') return 'SIGN_IN';
     if (event === 'SIGN_OUT') return 'SIGN_OUT';
+    if (event === 'UPDATE') return 'UPDATE';
+    if (event === 'PASSWORD_RESET') return 'PASSWORD_RESET';
     if (event.startsWith('2-FACTOR')) return '2FA';
     if (event.startsWith('USER_CREATE')) return 'USER_CREATE';
     return event; // fallback: show raw value
   };
 
   const getEventColor = (event: string) => {
-    if (event === 'SIGN_IN') return 'text-blue-600';
-    if (event === 'SIGN_OUT') return 'text-slate-500';
-    if (event.startsWith('2-FACTOR')) return 'text-violet-600';
-    if (event.startsWith('USER_CREATE')) return 'text-emerald-600';
+    if (event === 'SIGN_IN') return 'text-blue-600 font-semibold';
+    if (event === 'SIGN_OUT') return 'text-rose-500 font-semibold';
+    if (event === 'UPDATE') return 'text-amber-500 font-semibold';
+    if (event === 'PASSWORD_RESET') return 'text-emerald-500 font-semibold';
+    if (event.startsWith('2-FACTOR')) return 'text-violet-600 font-semibold';
+    if (event.startsWith('USER_CREATE'))
+      return 'text-emerald-600 font-semibold';
     return 'text-slate-600';
   };
   const getEventPayload = (event: string) => {
@@ -64,8 +69,8 @@ export default function LiveTerminalLogs({ initialLogs }: AdminConsoleProps) {
                   key={log.id}
                   className="flex flex-wrap items-center gap-x-1 sm:gap-x-2 md:gap-x-3 px-1 py-2 md:py-1 uppercase font-mono tracking-widest text-[12px] md:text-[13px] leading-tight hover:bg-slate-100/60 transition-colors"
                 >
-                  <span className="text-slate-500">{'>'}</span>
-                  <span className="text-slate-700 tabular-nums w-auto min-w-40 shrink-0">
+                  <span className="text-muted-foreground">{'>'}</span>
+                  <span className="text-muted-foreground font-semibold tabular-nums w-auto min-w-40 shrink-0">
                     [{time} :: {date}]
                   </span>
                   <span className="text-blue-700 shrink-0">[LOGS]</span>
@@ -82,7 +87,9 @@ export default function LiveTerminalLogs({ initialLogs }: AdminConsoleProps) {
                   <span className="text-slate-700">::</span>
                   <span
                     className={`shrink-0 flex items-center gap-1 ${
-                      isSuccess ? 'text-green-600' : 'text-rose-600'
+                      isSuccess
+                        ? 'text-green-600 font-semibold'
+                        : 'text-rose-600 font-semibold'
                     }`}
                   >
                     {(() => {
@@ -90,7 +97,7 @@ export default function LiveTerminalLogs({ initialLogs }: AdminConsoleProps) {
                       return payload ? (
                         <>
                           <span
-                            className={`${isSuccess ? 'text-cyan-600' : 'text-rose-600'}`}
+                            className={`${isSuccess ? 'text-cyan-600 font-semibold' : 'text-rose-600 font-semibold'}`}
                           >
                             [USER_CREATION: {payload} ]
                           </span>

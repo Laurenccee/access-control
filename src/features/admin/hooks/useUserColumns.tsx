@@ -14,9 +14,12 @@ const columnHelper = createColumnHelper<any>();
 export const useUserColumns = (
   currentUserId: string | undefined,
   onlineUsers: Record<string, any>, // ← non-optional, matches useUserPresence return type
-  callbacks: { onView: (user: any) => void },
+  callbacks: {
+    onView: (user: any) => void;
+    onResetLockout?: (userId: string) => void;
+  }, // ← added this callback
 ) => {
-  const { onView } = callbacks; // ← destructure here
+  const { onView, onResetLockout } = callbacks; // ← destructure here
 
   return [
     columnHelper.display({
@@ -108,7 +111,7 @@ export const useUserColumns = (
                   <Button
                     variant="outline"
                     size="icon-sm"
-                    onClick={() => onView(row.original)}
+                    onClick={() => onResetLockout?.(row.original.id)}
                   >
                     <RefreshCcw size={14} />
                   </Button>

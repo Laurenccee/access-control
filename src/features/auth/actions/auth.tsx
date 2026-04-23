@@ -64,7 +64,9 @@ export async function signInAction(values: SignInData) {
 
       return {
         success: false,
+        code: 'email_not_confirmed',
         message: 'Please verify your email address before logging in.',
+        email: authUser.user.email,
       };
     }
 
@@ -73,8 +75,9 @@ export async function signInAction(values: SignInData) {
     let responseMessage = `Invalid credentials. Attempt ${newAttempts}/3.`;
 
     if (newAttempts >= 3) {
-      lockoutUntil = new Date(Date.now() + 30 * 1000).toISOString();
-      responseMessage = 'Too many failed attempts. System locked for 30s.';
+      lockoutUntil = new Date(Date.now() + 5 * 60 * 1000).toISOString();
+      responseMessage =
+        'Too many failed attempts. System locked for 5 minutes.';
     }
 
     await Promise.all([
@@ -150,5 +153,18 @@ export async function signOutAction() {
   cookieStore.delete('user-role');
 
   revalidatePath('/', 'layout');
+  return { success: true };
+}
+
+export async function resendVerificationEmailAction(email: string) {
+  const supabase = await createClient();
+  // Supabase v2+ uses 'resend' for confirmation emails
+  const { error } = await supabase.auth.resend({
+    type: 'signup',
+    email,
+  });
+  if (error) {
+    return { success: false, message: error.message };
+  }
   return { success: true };
 }

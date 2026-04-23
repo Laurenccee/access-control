@@ -17,6 +17,7 @@ interface InputFieldProps {
   type?: string;
   placeholder?: string;
   description?: string;
+  error?: string;
 
   leadingIcon?: React.ReactNode;
   trailingIcon?: React.ReactNode;
@@ -31,6 +32,7 @@ export default function InputField({
   leadingIcon,
   trailingIcon,
   description,
+  error,
 
   ...rest
 }: InputFieldProps) {
@@ -69,6 +71,7 @@ export default function InputField({
                 <InputGroupButton
                   type="button"
                   size="icon-xs"
+                  tabIndex={-1}
                   className="hover:bg-transparent"
                   onClick={() => setShowPassword((v) => !v)}
                 >
@@ -94,6 +97,11 @@ export default function InputField({
           {description && (
             <FieldDescription className="text-xs tracking-[0.2em] text-muted-foreground ml-1">
               {description}
+            </FieldDescription>
+          )}
+          {error && (
+            <FieldDescription className="text-xs text-red-500 font-semibold font-mono tracking-[0.2em]  ml-1">
+              {error}
             </FieldDescription>
           )}
         </Field>

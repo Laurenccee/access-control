@@ -1,6 +1,6 @@
 'use client';
 
-import { useTransition } from 'react';
+import { useState, useTransition } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { Edit, Loader2, Mail, User, Save, Shield } from 'lucide-react';
@@ -31,6 +31,7 @@ import {
   updateUserAction,
 } from '@/features/admin/actions/user';
 import { useAuth } from '@/hooks/useAuth';
+import CaptchaAlertDialog from '@/components/shared/CaptchaAlertDialog';
 
 interface UpdateProfileSheetFormProps {
   profile: any;
@@ -51,6 +52,34 @@ export default function UpdateProfileSheetForm({
   const [isPending, startTransition] = useTransition();
   const { isAdmin, user } = useAuth();
   const isOwner = user?.id === profile?.id;
+  const [captchaOpen, setCaptchaOpen] = useState(false);
+  const [pendingAction, setPendingAction] = useState<'reset' | 'update' | null>(
+    null,
+  );
+  const [pendingData, setPendingData] = useState<any>(null); // for update form data
+
+  const onResetPasswordClick = () => {
+    setPendingAction('reset');
+    setCaptchaOpen(true);
+  };
+
+  const onUpdateSubmit = (data: UpdateProfile) => {
+    setPendingAction('update');
+    setPendingData(data);
+    setCaptchaOpen(true);
+  };
+
+  const handleCaptchaSuccess = () => {
+    setCaptchaOpen(false);
+    if (pendingAction === 'reset') {
+      handleResetPassword();
+    } else if (pendingAction === 'update' && pendingData) {
+      handleUpdateUser(pendingData);
+      setPendingData(null);
+    }
+    setPendingAction(null);
+  };
+
   const roleOptions = roles.map((r) => ({
     value: r.id.toString(),
     label: r.role_name,
@@ -153,7 +182,7 @@ export default function UpdateProfileSheetForm({
 
         <form
           id="update-user-form"
-          onSubmit={handleSubmit(handleUpdateUser)}
+          onSubmit={handleSubmit(onUpdateSubmit)}
           className="flex flex-col gap-4 px-4 py-4"
         >
           <InputField
@@ -214,12 +243,16 @@ export default function UpdateProfileSheetForm({
             </>
           )}
         </form>
-
+        <CaptchaAlertDialog
+          open={captchaOpen}
+          onOpenChange={setCaptchaOpen}
+          onSuccess={handleCaptchaSuccess}
+        />
         <SheetFooter className="mt-auto">
           <Button
             type="button"
             size="lg"
-            onClick={handleResetPassword}
+            onClick={onResetPasswordClick}
             disabled={isPending}
             variant="outline"
           >

@@ -7,7 +7,11 @@ import LiveTerminalLogs from '@/features/admin/components/LiveTerminalLogs';
 import UserManagement from '@/features/admin/components/UserManagement';
 import { SelectionsOptions } from '@/features/admin/services/options';
 
-export default async function AdminPage() {
+interface AdminPageProps {
+  searchParams?: { [key: string]: string | string[] | undefined };
+}
+
+export default async function AdminPage({ searchParams }: AdminPageProps) {
   const supabase = await createClient();
 
   const {
@@ -25,16 +29,28 @@ export default async function AdminPage() {
   }
 
   // Fetch data directly via our service
-  const users = await SecurityService.getAllIdentities();
+  const params = await searchParams;
+  const page = Number(params?.page) || 1;
+  const pageSize = 5;
+  const offset = (page - 1) * pageSize;
+
+  const { users, total } = await SecurityService.getAllIdentities({
+    limit: pageSize,
+    offset,
+  });
   const logs = await SecurityService.getSystemLogs();
 
   return (
     <section className="flex flex-col gap-8">
       <UserManagement
         initialUsers={users}
+        totalUsers={total}
+        page={page}
+        pageSize={pageSize}
         currentUserId={user.id}
         securityQuestions={options}
         roles={roles}
+        adminName={profile.username}
       />
       <LiveTerminalLogs initialLogs={logs} />
     </section>

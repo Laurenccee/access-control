@@ -1,5 +1,5 @@
 // /lib/validations.ts
-import { email, z } from 'zod';
+import { z } from 'zod';
 
 export const SignInSchema = z.object({
   username: z
@@ -25,6 +25,9 @@ export const OTPSchema = z.object({
 export const EmailSignInSchema = z.object({
   email: z.string().email('Invalid email address'),
 });
+export const ForgetPasswordSchema = z.object({
+  email: z.string().email('Invalid email address'),
+});
 
 export const UserRole = {
   ADMIN: 'ADMIN',
@@ -35,4 +38,5 @@ export type SignInData = z.infer<typeof SignInSchema>;
 export type SecurityQuestionData = z.infer<typeof SecurityQuestionSchema>;
 export type OTPData = z.infer<typeof OTPSchema>;
 export type EmailSignInData = z.infer<typeof EmailSignInSchema>;
+export type ForgetPasswordData = z.infer<typeof ForgetPasswordSchema>;
 export type Role = keyof typeof UserRole;

@@ -7,7 +7,7 @@ export default function SignInPage() {
   return (
     <div className="flex flex-1 items-center justify-center w-full p-4">
       <Tabs defaultValue="email-and-password" className="max-w-md w-full">
-        <TabsList className="w-full">
+        <TabsList className="w-full h-10">
           <TabsTrigger value="email-and-password">
             Email and Password
           </TabsTrigger>

@@ -1,11 +1,5 @@
-import { createClient } from '@/lib/supabase/server';
-
-export interface AuditLogEntry {
-  username: string;
-  event_type: string;
-  status: 'SUCCESS' | 'WARNING' | 'CRITICAL' | 'INFO';
-  details?: string;
-}
+import { logActivity } from '@/lib/helper/auth';
+import { createAdminClient, createClient } from '@/lib/supabase/server';
 
 /**
  * SECURITY & DATA SERVICE
@@ -13,13 +7,14 @@ export interface AuditLogEntry {
 export const SecurityService = {
   // --- ADMIN ACTIONS (TASK 4 & 7) ---
 
-  async getAllIdentities() {
+  async getAllIdentities({ limit = 5, offset = 0 } = {}) {
     const supabase = await createClient();
 
-    const { data, error } = await supabase
+    const { data, error, count } = await supabase
       .from('profiles')
-      .select('*')
-      .is('deleted_at', null);
+      .select('*', { count: 'exact' })
+      .is('deleted_at', null)
+      .range(offset, offset + limit - 1);
 
     if (error) {
       console.error(
@@ -28,7 +23,7 @@ export const SecurityService = {
       );
       throw new Error('Access to user directory denied.');
     }
-    return data;
+    return { users: data, total: count ?? 0 };
   },
 
   async getSystemLogs() {
@@ -46,17 +41,18 @@ export const SecurityService = {
 
   async revokeAccess(userId: string, adminName: string) {
     const supabase = await createClient();
+    const supabaseAdmin = await createAdminClient();
 
     const { error } = await supabase.from('profiles').delete().eq('id', userId);
 
     if (error) throw new Error('Deletion protocol failed.');
 
     // Task 7: Log the deletion
-    await this.logEvent({
+    await logActivity(supabaseAdmin, {
+      userId: userId,
       username: adminName,
-      event_type: 'USER_DELETION',
-      status: 'WARNING',
-      details: `Deleted user ID: ${userId}`,
+      event: 'USER_DELETION',
+      status: 'SUCCESS',
     });
 
     return { success: true };
@@ -74,24 +70,5 @@ export const SecurityService = {
 
     if (error || !data) throw new Error('Identity verification failed.');
     return data;
-  },
-
-  // --- LOGGING ENGINE (TASK 7) ---
-
-  async logEvent({ username, event_type, status, details }: AuditLogEntry) {
-    const supabase = await createClient();
-
-    // We use .insert().select() to ensure the write was successful
-    const { error } = await supabase.from('activity_logs').insert([
-      {
-        username,
-        event_type,
-        status,
-        details,
-        timestamp: new Date().toISOString(),
-      },
-    ]);
-
-    if (error) console.error('[AUDIT FAIL]:', error.message);
   },
 };

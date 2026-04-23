@@ -77,7 +77,6 @@ export default function SetupProfileForm({
 
         if (result.success) {
           toast.success('Profile secured successfully!');
-          reset();
           router.replace('/');
         } else {
           toast.error(result.message);

@@ -6,6 +6,8 @@ export const ROUTES = {
   ADMIN_CONSOLE: '/admin-console',
   USER_DASHBOARD: '/user',
   OTP_CERIFICATION: '/otp-verification',
+  EMAIL_VERIFICATION: '/email-verification',
+  FORGET_PASSWORD: '/forget-password',
   ROOT: '/',
 } as const;
 

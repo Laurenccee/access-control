@@ -43,7 +43,7 @@ export default function OTPForm() {
           return;
         }
         toast.success('OTP verified! You are now signed in.');
-        router.replace('/'); // or wherever you want to redirect
+        router.replace('/');
       } catch (error) {
         toast.error('An unexpected error occurred.');
         console.error('Error verifying OTP:', error);

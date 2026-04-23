@@ -10,15 +10,21 @@ import {
   PaginationPrevious,
 } from '@/components/ui/pagination';
 
-interface UserPaginationProps<TData> {
-  table: Table<TData>;
+interface UserPaginationProps {
+  currentPage?: number;
+  pageSize?: number;
+  totalItems?: number;
+  onPageChange?: (newPage: number) => void;
 }
 
 export default function UserPagination<TData>({
-  table,
-}: UserPaginationProps<TData>) {
-  const pageIndex = table.getState().pagination.pageIndex;
-  const pageCount = table.getPageCount();
+  currentPage = 1,
+  pageSize = 5,
+  totalItems = 0,
+  onPageChange,
+}: UserPaginationProps) {
+  const pageCount = Math.ceil(totalItems / pageSize);
+  const pageIndex = currentPage - 1;
 
   return (
     <div className="flex items-center  justify-between mt-4">
@@ -40,10 +46,10 @@ export default function UserPagination<TData>({
                 href="#"
                 onClick={(e) => {
                   e.preventDefault();
-                  table.previousPage();
+                  if (pageIndex > 0 && onPageChange) onPageChange(pageIndex);
                 }}
                 className={
-                  !table.getCanPreviousPage()
+                  pageIndex === 0
                     ? 'pointer-events-none opacity-50'
                     : 'cursor-pointer'
                 }
@@ -58,7 +64,7 @@ export default function UserPagination<TData>({
                   isActive={pageIndex === idx}
                   onClick={(e) => {
                     e.preventDefault();
-                    table.setPageIndex(idx);
+                    if (onPageChange) onPageChange(idx + 1);
                   }}
                 >
                   {idx + 1}
@@ -73,10 +79,11 @@ export default function UserPagination<TData>({
                 href="#"
                 onClick={(e) => {
                   e.preventDefault();
-                  table.nextPage();
+                  if (pageIndex < pageCount - 1 && onPageChange)
+                    onPageChange(pageIndex + 2);
                 }}
                 className={
-                  !table.getCanNextPage()
+                  pageIndex === pageCount - 1
                     ? 'pointer-events-none opacity-50'
                     : 'cursor-pointer'
                 }

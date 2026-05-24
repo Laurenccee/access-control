@@ -1,6 +1,6 @@
 "use client";
 
-import { useRouter, useSearchParams } from "next/navigation";
+import { useRouter } from "next/navigation";
 import { useTransition } from "react";
 import { SubmitHandler, useForm, useWatch } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -27,11 +27,6 @@ import { resetPasswordAction } from "../actions/profile";
 export default function ResetPasswordForm({}) {
   const [isPending, startTransition] = useTransition();
   const router = useRouter();
-  const searchParams = useSearchParams(); // Read query strings safely on the client
-
-  const tokenOrCode = searchParams.get("code") || searchParams.get("token");
-  // Extract whichever parameter Supabase used for your reset link configuration
-
   const { control, handleSubmit, reset } = useForm<ResetPassword>({
     resolver: zodResolver(ResetPasswordSchema), // ← cast
     defaultValues: {
@@ -55,20 +50,10 @@ export default function ResetPasswordForm({}) {
 
   const rules = checkRules(passwordValue || "", confirmPasswordValue || "");
 
-  console.log("tokenOrCode:", tokenOrCode); // Debugging log to verify token retrieval
   const handlePasswordReset: SubmitHandler<ResetPassword> = (data) => {
-    if (!tokenOrCode) {
-      toast.error(
-        "Missing validation token. Please use a valid email reset link.",
-      );
-      return;
-    }
     startTransition(async () => {
       try {
-        const result = await resetPasswordAction({
-          password: data.password,
-          tokenOrCode: tokenOrCode,
-        });
+        const result = await resetPasswordAction(data);
 
         if (result.success) {
           toast.success("Password updated successfully!");

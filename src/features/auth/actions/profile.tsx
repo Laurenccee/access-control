@@ -3,7 +3,6 @@
 import { UpdateProfileSchema } from "@/features/admin/schemas/user";
 import { hashSecurityAnswer, logActivity } from "@/lib/helper/auth";
 import { createAdminClient, createClient } from "@/lib/supabase/server";
-import { ResetPasswordPayload } from "../types";
 
 export async function setupProfileAction(values: any) {
   const supabase = await createClient();
@@ -64,33 +63,20 @@ export async function setupProfileAction(values: any) {
     return { success: false, message: error.message || "An error occurred." };
   }
 }
-export async function resetPasswordAction(values: ResetPasswordPayload) {
+export async function resetPasswordAction(values: any) {
   const supabase = await createClient();
   const supabaseAdmin = await createAdminClient();
 
-  const { password, tokenOrCode } = values;
-
-  if (!tokenOrCode) {
-    return {
-      success: false,
-      message: "Recovery token or code is missing. Please request a new link.",
-    };
-  }
+  const {
+    data: { user: requester },
+  } = await supabase.auth.getUser();
+  if (!requester) return { success: false, message: "Session expired." };
 
   try {
-    const { data: exchangeData, error: exchangeError } =
-      await supabase.auth.exchangeCodeForSession(tokenOrCode);
-
-    if (exchangeError || !exchangeData.user) {
-      throw new Error(
-        exchangeError?.message || "The reset link is invalid or has expired.",
-      );
-    }
-
-    const targetUser = exchangeData.user;
-
+    // SECURITY GATE: Only allow the user to change their own password
+    // Even if an admin is logged in, this updates the session owner's credentials.
     const { error: authError } = await supabase.auth.updateUser({
-      password: password,
+      password: values.password,
     });
 
     if (authError) throw new Error(authError.message);
@@ -98,14 +84,14 @@ export async function resetPasswordAction(values: ResetPasswordPayload) {
     const { data: profile } = await supabase
       .from("profiles")
       .select("username")
-      .eq("id", targetUser.id)
+      .eq("id", requester.id)
       .single();
 
     // Log the event as a standard self-update
     await logActivity(supabaseAdmin, {
-      userId: targetUser.id,
+      userId: requester.id,
       username: profile?.username || "System",
-      event: `PASSWORD_RESET_UNAUTHENTICATED`,
+      event: `PASSWORD_RESET`,
       status: "SUCCESS",
     });
 

@@ -1,7 +1,7 @@
-import SignInForm from '@/features/auth/components/SignInForm';
-import React from 'react';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import EmailSignInForm from '@/features/auth/components/EmailSignInForm';
+import SignInForm from "@/features/auth/components/SignInForm";
+import React from "react";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import EmailSignInForm from "@/features/auth/components/EmailSignInForm";
 
 export default function SignInPage() {
   return (
@@ -9,7 +9,7 @@ export default function SignInPage() {
       <Tabs defaultValue="email-and-password" className="max-w-md w-full">
         <TabsList className="w-full h-10">
           <TabsTrigger value="email-and-password">
-            Email and Password
+            Username and Password
           </TabsTrigger>
           <TabsTrigger value="password">Email OTP</TabsTrigger>
         </TabsList>

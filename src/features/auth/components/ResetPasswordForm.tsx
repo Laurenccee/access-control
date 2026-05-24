@@ -1,13 +1,13 @@
-'use client';
+"use client";
 
-import { useRouter } from 'next/navigation';
-import { useTransition } from 'react';
-import { SubmitHandler, useForm, useWatch } from 'react-hook-form';
-import { zodResolver } from '@hookform/resolvers/zod';
-import { toast } from 'sonner';
-import { ArrowRight, Loader2, RectangleEllipsis } from 'lucide-react';
+import { useRouter, useSearchParams } from "next/navigation";
+import { useTransition } from "react";
+import { SubmitHandler, useForm, useWatch } from "react-hook-form";
+import { zodResolver } from "@hookform/resolvers/zod";
+import { toast } from "sonner";
+import { ArrowRight, Loader2, RectangleEllipsis } from "lucide-react";
 
-import { Button } from '@/components/ui/button';
+import { Button } from "@/components/ui/button";
 import {
   Card,
   CardContent,
@@ -15,32 +15,37 @@ import {
   CardFooter,
   CardHeader,
   CardTitle,
-} from '@/components/ui/card';
+} from "@/components/ui/card";
 import {
   ResetPassword,
   ResetPasswordSchema,
-} from '@/features/admin/schemas/user';
-import InputField from '@/components/shared/InputField';
-import PasswordRulesCard from './PasswordRulesCard';
-import { resetPasswordAction } from '../actions/profile';
+} from "@/features/admin/schemas/user";
+import InputField from "@/components/shared/InputField";
+import PasswordRulesCard from "./PasswordRulesCard";
+import { resetPasswordAction } from "../actions/profile";
 
 export default function ResetPasswordForm({}) {
   const [isPending, startTransition] = useTransition();
   const router = useRouter();
+  const searchParams = useSearchParams(); // Read query strings safely on the client
+
+  const tokenOrCode = searchParams.get("code") || searchParams.get("token");
+  // Extract whichever parameter Supabase used for your reset link configuration
+
   const { control, handleSubmit, reset } = useForm<ResetPassword>({
     resolver: zodResolver(ResetPasswordSchema), // ← cast
     defaultValues: {
-      password: '',
-      confirmPassword: '',
+      password: "",
+      confirmPassword: "",
     },
   });
 
   const [passwordValue, confirmPasswordValue] = useWatch({
     control,
-    name: ['password', 'confirmPassword'],
+    name: ["password", "confirmPassword"],
   }) as [string | undefined, string | undefined];
 
-  const checkRules = (pw: string = '', confirmPw: string = '') => ({
+  const checkRules = (pw: string = "", confirmPw: string = "") => ({
     minLen: pw.length >= 8,
     uppercase: /[A-Z]/.test(pw),
     lowercase: /[a-z]/.test(pw),
@@ -48,23 +53,33 @@ export default function ResetPasswordForm({}) {
     mustMatch: pw === confirmPw && pw.length > 0,
   });
 
-  const rules = checkRules(passwordValue || '', confirmPasswordValue || '');
+  const rules = checkRules(passwordValue || "", confirmPasswordValue || "");
 
+  console.log("tokenOrCode:", tokenOrCode); // Debugging log to verify token retrieval
   const handlePasswordReset: SubmitHandler<ResetPassword> = (data) => {
+    if (!tokenOrCode) {
+      toast.error(
+        "Missing validation token. Please use a valid email reset link.",
+      );
+      return;
+    }
     startTransition(async () => {
       try {
-        const result = await resetPasswordAction(data);
+        const result = await resetPasswordAction({
+          password: data.password,
+          tokenOrCode: tokenOrCode,
+        });
 
         if (result.success) {
-          toast.success('Password updated successfully!');
+          toast.success("Password updated successfully!");
           reset();
-          router.replace('/');
+          router.replace("/");
         } else {
           toast.error(result.message);
         }
       } catch (error) {
-        toast.error('An unexpected error occurred. Please try again.');
-        console.error('Form Submission Error:', error);
+        toast.error("An unexpected error occurred. Please try again.");
+        console.error("Form Submission Error:", error);
       }
     });
   };

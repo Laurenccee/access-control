@@ -1,8 +1,9 @@
-'use server';
+"use server";
 
-import { UpdateProfileSchema } from '@/features/admin/schemas/user';
-import { hashSecurityAnswer, logActivity } from '@/lib/helper/auth';
-import { createAdminClient, createClient } from '@/lib/supabase/server';
+import { UpdateProfileSchema } from "@/features/admin/schemas/user";
+import { hashSecurityAnswer, logActivity } from "@/lib/helper/auth";
+import { createAdminClient, createClient } from "@/lib/supabase/server";
+import { ResetPasswordPayload } from "../types";
 
 export async function setupProfileAction(values: any) {
   const supabase = await createClient();
@@ -11,14 +12,14 @@ export async function setupProfileAction(values: any) {
   const {
     data: { user },
   } = await supabase.auth.getUser();
-  if (!user) return { success: false, message: 'Session expired.' };
+  if (!user) return { success: false, message: "Session expired." };
 
   // 2. Validation
   const validatedFields = UpdateProfileSchema.safeParse(values);
   if (!validatedFields.success) {
     return {
       success: false,
-      message: 'Invalid input. Check password requirements.',
+      message: "Invalid input. Check password requirements.",
     };
   }
 
@@ -41,62 +42,75 @@ export async function setupProfileAction(values: any) {
 
     // 5. Update Profile Table
     const { error: profileError } = await supabase
-      .from('profiles')
+      .from("profiles")
       .update({
         security_question_id,
         security_answer_hash: hashedAnswer,
         is_setup_complete: true,
       })
-      .eq('id', user.id);
+      .eq("id", user.id);
 
     if (profileError) throw new Error(profileError.message);
 
     // 6. TASK 7: Log Activity
-    await supabase.from('activity_logs').insert({
-      event_type: 'PROFILE_SETUP_COMPLETE',
-      status: 'SUCCESS',
+    await supabase.from("activity_logs").insert({
+      event_type: "PROFILE_SETUP_COMPLETE",
+      status: "SUCCESS",
       username: user.email,
     });
 
-    return { success: true, message: 'Profile secured successfully!' };
+    return { success: true, message: "Profile secured successfully!" };
   } catch (error: any) {
-    return { success: false, message: error.message || 'An error occurred.' };
+    return { success: false, message: error.message || "An error occurred." };
   }
 }
-export async function resetPasswordAction(values: any) {
+export async function resetPasswordAction(values: ResetPasswordPayload) {
   const supabase = await createClient();
   const supabaseAdmin = await createAdminClient();
 
-  const {
-    data: { user: requester },
-  } = await supabase.auth.getUser();
-  if (!requester) return { success: false, message: 'Session expired.' };
+  const { password, tokenOrCode } = values;
+
+  if (!tokenOrCode) {
+    return {
+      success: false,
+      message: "Recovery token or code is missing. Please request a new link.",
+    };
+  }
 
   try {
-    // SECURITY GATE: Only allow the user to change their own password
-    // Even if an admin is logged in, this updates the session owner's credentials.
+    const { data: exchangeData, error: exchangeError } =
+      await supabase.auth.exchangeCodeForSession(tokenOrCode);
+
+    if (exchangeError || !exchangeData.user) {
+      throw new Error(
+        exchangeError?.message || "The reset link is invalid or has expired.",
+      );
+    }
+
+    const targetUser = exchangeData.user;
+
     const { error: authError } = await supabase.auth.updateUser({
-      password: values.password,
+      password: password,
     });
 
     if (authError) throw new Error(authError.message);
 
     const { data: profile } = await supabase
-      .from('profiles')
-      .select('username')
-      .eq('id', requester.id)
+      .from("profiles")
+      .select("username")
+      .eq("id", targetUser.id)
       .single();
 
     // Log the event as a standard self-update
     await logActivity(supabaseAdmin, {
-      userId: requester.id,
-      username: profile?.username || 'System',
-      event: `PASSWORD_RESET`,
-      status: 'SUCCESS',
+      userId: targetUser.id,
+      username: profile?.username || "System",
+      event: `PASSWORD_RESET_UNAUTHENTICATED`,
+      status: "SUCCESS",
     });
 
-    return { success: true, message: 'Password updated successfully!' };
+    return { success: true, message: "Password updated successfully!" };
   } catch (error: any) {
-    return { success: false, message: error.message || 'Update failed.' };
+    return { success: false, message: error.message || "Update failed." };
   }
 }

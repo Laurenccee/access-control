@@ -49,6 +49,11 @@ export async function addUserAction(values: CreateUser) {
       user_metadata: { role_id: data.role_id },
     });
 
+  await supabaseAdmin.auth.resend({
+    type: 'signup',
+    email: data.email,
+  });
+
   if (authError) return { success: false, message: authError.message };
 
   const userId = authData.user.id;
